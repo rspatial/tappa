@@ -3,10 +3,10 @@ Tests ported from inst/tinytest/test_pitfinder.R
 """
 import numpy as np
 
-from geospat.rast import rast
-from geospat.extent import ext
-from geospat.values import set_values
-from geospat.generics import pitfinder, terrain
+from tappa.rast import rast
+from tappa.extent import ext
+from tappa.values import set_values
+from tappa.generics import pitfinder, terrain
 
 
 def test_pitfinder():

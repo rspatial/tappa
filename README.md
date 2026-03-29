@@ -52,21 +52,20 @@ route on Windows.
    pip install scikit-build-core numpy pandas matplotlib
    ```
 
-4. **Build and install** the package from the `python/` directory of the
-   terra source tree:
+4. **Build and install** from the **tappa** repository root:
 
    ```powershell
-   cd C:\path\to\terra\python
+   cd C:\path\to\tappa
    pip install -e .
    ```
 
    scikit-build-core runs CMake automatically and places the compiled
-   `_terra.pyd` extension inside `src/geospat/`.
+   `_terra.pyd` extension inside `src/tappa/`.
 
 5. **Verify**:
 
    ```python
-   import geospat as pt
+   import tappa as pt
    r = pt.rast()
    print(r)
    ```
@@ -103,14 +102,14 @@ manager and is pre-installed on GitHub Actions Windows runners.
 4. Build the package, pointing CMake to the vcpkg toolchain:
 
    ```powershell
-   cd C:\path\to\terra\python
+   cd C:\path\to\tappa
    pip install -e . `
      -C cmake.define.CMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake `
      -C cmake.define.VCPKG_TARGET_TRIPLET=x64-windows
    ```
 
 > **DLL search path:** when using vcpkg you must add the vcpkg DLL directory
-> to `PATH` before importing geospat so that `gdal.dll`, `geos_c.dll`, and
+> to `PATH` before importing tappa so that `gdal.dll`, `geos_c.dll`, and
 > `proj.dll` are found:
 > ```powershell
 > $env:PATH = "C:\vcpkg\installed\x64-windows\bin;" + $env:PATH
@@ -129,7 +128,7 @@ sudo apt-get install -y libgdal-dev libgeos-dev libproj-dev cmake
 # Fedora / RHEL
 sudo dnf install -y gdal-devel geos-devel proj-devel cmake
 
-cd python
+cd /path/to/tappa
 python3 -m venv .venv
 source .venv/bin/activate
 pip install scikit-build-core pybind11 numpy pandas matplotlib
@@ -143,7 +142,7 @@ pip install -e .
 ```bash
 brew install gdal geos proj cmake
 
-cd python
+cd /path/to/tappa
 python3 -m venv .venv
 source .venv/bin/activate
 pip install scikit-build-core pybind11 numpy pandas matplotlib
@@ -155,24 +154,24 @@ pip install -e .
 ## Usage
 
 ```python
-import geospat
+import tappa
 import matplotlib.pyplot as plt
 
 # Create / read a raster
 f = "https://github.com/rspatial/terra/raw/refs/heads/master/inst/ex/elev.tif"
-r = geospat.rast(f)
-e = geospat.ext(6, 6.4, 49.5, 50)
+r = tappa.rast(f)
+e = tappa.ext(6, 6.4, 49.5, 50)
 x = r.crop(e)
 
 # Inspect
 print(r)
 
 # Plot
-geospat.plot(r)
+tappa.plot(r)
 plt.show()
 
 # Work with extents
-e = geospat.ext(-180, 180, -90, 90)
+e = tappa.ext(-180, 180, -90, 90)
 print(e)
 
 # Arithmetic operators
@@ -182,7 +181,7 @@ mask = r > 500
 
 # Vector
 ff = "https://github.com/rspatial/terra/raw/refs/heads/master/inst/ex/lux.shp"
-v = geospat.vect(ff)
+v = tappa.vect(ff)
 v
 ```
 

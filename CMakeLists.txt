@@ -33,9 +33,9 @@ endif()
 
 # ── terra C++ core (mirrored from rspatial/terra src/) ──────────────────────
 # Lives in terra_core/; Python package + extension output live under src/.
-# Optional _geospat_cpp_src: legacy CI vendored copy of terra_core.
-if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/_geospat_cpp_src")
-    set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/_geospat_cpp_src")
+# Optional _tappa_cpp_src: legacy CI vendored copy of terra_core.
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/_tappa_cpp_src")
+    set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/_tappa_cpp_src")
 elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/terra_core/spatRaster.cpp")
     set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/terra_core")
 elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/spatRaster.cpp")
@@ -118,5 +118,5 @@ target_compile_definitions(_terra PRIVATE
 # Place the built .so / .pyd directly inside the Python package directory so
 # an editable install (pip install -e .) works without further configuration.
 set_target_properties(_terra PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/geospat"
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src/tappa"
 )

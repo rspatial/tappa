@@ -4,10 +4,10 @@ Tests ported from inst/tinytest/test_crds.R
 import math
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.vect import vect
-from geospat.cells import cell_from_xy
+import tappa as pt
+from tappa.rast import rast
+from tappa.vect import vect
+from tappa.cells import cell_from_xy
 
 
 def test_cell_from_xy_valid_origin():

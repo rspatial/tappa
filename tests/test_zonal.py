@@ -7,10 +7,10 @@ Note: the Python zonal() currently only supports built-in function names
 import math
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.zonal import zonal
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.zonal import zonal
 
 try:
     import pandas as pd

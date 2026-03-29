@@ -6,7 +6,7 @@ Uses :func:`terra.distance.distance_xy`, which follows ``R/distance.R``:
 """
 import math
 import numpy as np
-from geospat.distance import distance_xy
+from tappa.distance import distance_xy
 
 
 SQ2 = math.sqrt(2)

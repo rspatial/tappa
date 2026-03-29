@@ -5,8 +5,8 @@ Requires the bundled lux.shp example file.
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.vect import vect
+import tappa as pt
+from tappa.vect import vect
 
 from path_utils import skip_if_missing_inst_ex
 

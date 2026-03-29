@@ -2,9 +2,9 @@
 Tests ported from inst/tinytest/test_arith.R
 """
 import numpy as np
-import geospat as pt
-from geospat.values import set_values
-from geospat.rast import rast
+import tappa as pt
+from tappa.values import set_values
+from tappa.rast import rast
 
 
 def _vals(r):

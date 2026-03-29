@@ -6,10 +6,10 @@ Covers: levels / categories on SpatRaster.
 import numpy as np
 import pandas as pd
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.levels import (
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.levels import (
     levels, set_levels,
     cats, drop_levels, catalyze,
 )

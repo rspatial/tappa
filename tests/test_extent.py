@@ -1,7 +1,7 @@
 """
 Tests ported from inst/tinytest/test_extent.R
 """
-import geospat as pt
+import tappa as pt
 
 
 def test_intersect_disjoint_extents_is_none():

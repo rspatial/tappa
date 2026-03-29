@@ -5,10 +5,10 @@ Creates rasters from numpy arrays using rast() + set_values().
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat._terra import SpatRaster
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa._terra import SpatRaster
 
 
 def make_from_matrix(m, extent=None):

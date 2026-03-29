@@ -3,11 +3,11 @@ Tests ported from inst/tinytest/test_crosstab.R
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.generics import crosstab
-from geospat.names import set_names_inplace
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.generics import crosstab
+from tappa.names import set_names_inplace
 
 
 class TestCrosstab:

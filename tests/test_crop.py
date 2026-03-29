@@ -2,11 +2,11 @@
 Tests ported from inst/tinytest/test_crop.R
 """
 import numpy as np
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.generics import crop
-from geospat.extent import ext
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.generics import crop
+from tappa.extent import ext
 
 
 def _ext_vec(r):

@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures and configuration for the geospat Python test suite.
+Shared pytest fixtures and configuration for the tappa Python test suite.
 """
 import os
 import sys
@@ -7,12 +7,12 @@ import sys
 import pytest
 
 # This directory must be on sys.path so ``import path_utils`` resolves (pytest
-# rootdir is ``python/``, not ``python/tests/``).
+# rootdir is the repo root, not ``tests/``).
 _TESTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _TESTS_DIR not in sys.path:
     sys.path.insert(0, _TESTS_DIR)
 
-# Ensure the geospat package is importable when running tests directly
+# Ensure the tappa package is importable when running tests directly
 _SRC = os.path.normpath(os.path.join(_TESTS_DIR, "..", "src"))
 if _SRC not in sys.path:
     sys.path.insert(0, _SRC)

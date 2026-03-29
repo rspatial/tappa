@@ -5,13 +5,13 @@ Covers k_means (skipped if not available) and layerCor.
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
+import tappa as pt
+from tappa.rast import rast
 
 from path_utils import skip_if_missing_inst_ex
 
 try:
-    from geospat.stats import layer_cor
+    from tappa.stats import layer_cor
     _HAS_LAYERCOR = True
 except ImportError:
     _HAS_LAYERCOR = False

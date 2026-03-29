@@ -4,9 +4,9 @@ Tests ported from inst/tinytest/test_patches.R
 import math
 import numpy as np
 import pytest
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.generics import patches
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.generics import patches
 
 
 def _vals(r):

@@ -4,9 +4,9 @@ Tests ported from inst/tinytest/test_freq.R
 from collections import Counter
 
 import numpy as np
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.generics import freq
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.generics import freq
 
 
 class TestFreq:

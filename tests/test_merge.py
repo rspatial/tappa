@@ -3,11 +3,11 @@ Tests ported from inst/tinytest/test_merge.R
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.merge import merge
-from geospat.names import set_names_inplace
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.merge import merge
+from tappa.names import set_names_inplace
 
 
 def _make_two_layer(xmin, xmax, val):

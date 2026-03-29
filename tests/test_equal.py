@@ -6,9 +6,9 @@ rasters built from data in different layout should not.
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
 
 
 def make_r1():

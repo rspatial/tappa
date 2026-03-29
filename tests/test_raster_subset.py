@@ -1,8 +1,8 @@
 """SpatRaster.subset — 0-based indexing (Python convention)."""
 import numpy as np
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat._terra import SpatOptions
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa._terra import SpatOptions
 
 
 def test_subset_int_zero_based():

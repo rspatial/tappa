@@ -4,9 +4,9 @@ Tests ported from inst/tinytest/test_aggregate.R
 import math
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
 
 
 def _vals(r):

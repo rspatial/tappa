@@ -5,10 +5,10 @@ Note: R's set.seed()/runif() differs from numpy's random; tests with
 random data use deterministic values chosen to exercise the same logic.
 """
 import numpy as np
-import geospat as pt
-from geospat.values import set_values
-from geospat.generics import classify
-from geospat.rast import rast
+import tappa as pt
+from tappa.values import set_values
+from tappa.generics import classify
+from tappa.rast import rast
 
 
 def _vals(r):

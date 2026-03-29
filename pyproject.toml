@@ -4,10 +4,10 @@ build-backend = "scikit_build_core.build"
 
 
 [project]
-# PyPI / pip name and import package: geospat (see wheel.packages → src/geospat/)
-name = "geospat"
+# PyPI / pip name and import package: tappa (see wheel.packages → src/tappa/)
+name = "tappa"
 version = "0.0.1"
-description = "geospat — Python bindings for the terra geospatial API"
+description = "tappa — Python bindings for the terra geospatial API"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
 requires-python = ">=3.9"
@@ -19,16 +19,16 @@ dependencies = []
 geo = ["numpy", "pandas"]
 
 [project.urls]
-Homepage = "https://github.com/rspatial/tarra"
-Repository = "https://github.com/rspatial/tarra"
+Homepage = "https://github.com/rspatial/tappa"
+Repository = "https://github.com/rspatial/tappa"
 
 
 [tool.scikit-build]
 # Let scikit-build-core find our CMakeLists.txt in the same directory.
 cmake.build-type = "Release"
 
-# The installed package is everything under src/geospat/
-wheel.packages = ["src/geospat"]
+# The installed package is everything under src/tappa/
+wheel.packages = ["src/tappa"]
 
 # Make `pip install -e .` work: build the extension in-place.
 build-dir = "build/{wheel_tag}"
@@ -44,7 +44,7 @@ build-dir = "build/{wheel_tag}"
 # users typically use conda or system GDAL/GEOS/PROJ and build from source.
 # Requires the terra C++ tree under terra_core/ (see CMakeLists TERRA_SRC_DIR).
 build = ["cp39-win_amd64", "cp310-win_amd64", "cp311-win_amd64", "cp312-win_amd64"]
-test-command = "python -c \"import geospat; print('geospat', geospat.__file__)\""
+test-command = "python -c \"import tappa; print('tappa', tappa.__file__)\""
 
 [tool.cibuildwheel.windows]
 # vcpkg is pre-installed on GitHub Actions windows-latest runners.

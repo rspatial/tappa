@@ -4,10 +4,10 @@ Tests ported from inst/tinytest/test_rasterize.R
 import math
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.vect import vect
-from geospat.rasterize import rasterize
+import tappa as pt
+from tappa.rast import rast
+from tappa.vect import vect
+from tappa.rasterize import rasterize
 
 from path_utils import skip_if_missing_inst_ex
 

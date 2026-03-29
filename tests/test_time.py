@@ -3,10 +3,10 @@ Tests ported from inst/tinytest/test_time.R
 """
 from datetime import datetime, timezone
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.time import set_time, get_time, has_time, time_info
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.time import set_time, get_time, has_time, time_info
 
 
 def test_time_roundtrip():

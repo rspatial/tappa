@@ -6,10 +6,10 @@ Covers: resolution, dimensions, extent, and cell-to-xy conversion.
 import math
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.cells import xy_from_cell
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.cells import xy_from_cell
 
 
 def make_r3():

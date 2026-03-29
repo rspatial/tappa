@@ -4,10 +4,10 @@ Tests ported from inst/tinytest/test_weighted-mean.R
 import math
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.generics import weighted_mean
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.generics import weighted_mean
 
 
 def _vals(r):

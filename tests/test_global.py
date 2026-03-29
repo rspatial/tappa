@@ -5,8 +5,8 @@ Uses the bundled elev.tif example raster.
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
+import tappa as pt
+from tappa.rast import rast
 
 from path_utils import skip_if_missing_inst_ex
 

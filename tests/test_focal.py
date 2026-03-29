@@ -3,10 +3,10 @@ Tests ported from inst/tinytest/test_focal.R
 """
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.values import set_values
-from geospat.focal import focal
+import tappa as pt
+from tappa.rast import rast
+from tappa.values import set_values
+from tappa.focal import focal
 
 
 def _vals(r):

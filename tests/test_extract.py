@@ -4,12 +4,12 @@ Tests ported from inst/tinytest/test_extract.R (selected cases)
 import math
 import numpy as np
 import pytest
-import geospat as pt
-from geospat.rast import rast
-from geospat.vect import vect
-from geospat.values import set_values
-from geospat.extract import extract
-from geospat.cells import cell_from_xy, cells
+import tappa as pt
+from tappa.rast import rast
+from tappa.vect import vect
+from tappa.values import set_values
+from tappa.extract import extract
+from tappa.cells import cell_from_xy, cells
 
 from path_utils import skip_if_missing_inst_ex
 
