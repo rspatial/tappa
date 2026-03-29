@@ -1,0 +1,7 @@
+.venv/
+venv/
+build/
+_geospat_cpp_src/
+__pycache__/
+*.py[cod]
+.pytest_cache/
