@@ -42,7 +42,7 @@ build-dir = "build/{wheel_tag}"
 [tool.cibuildwheel]
 # CI publishes Windows wheels only (see .github/workflows/wheels.yml); Linux/macOS
 # users typically use conda or system GDAL/GEOS/PROJ and build from source.
-# Requires the terra C++ tree under src/ (see CMakeLists TERRA_SRC_DIR).
+# Requires the terra C++ tree under terra_core/ (see CMakeLists TERRA_SRC_DIR).
 build = ["cp39-win_amd64", "cp310-win_amd64", "cp311-win_amd64", "cp312-win_amd64"]
 test-command = "python -c \"import geospat; print('geospat', geospat.__file__)\""
 

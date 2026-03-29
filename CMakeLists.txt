@@ -31,11 +31,13 @@ if (NOT PROJ_FOUND)
 endif()
 
 
-# ── terra C++ sources (exclude all R/Rcpp-specific files) ───────────────────
-# Order: optional CI vendored tree; in-repo src/ (this package’s copy of terra
-# sources); sibling ../src when cloned next to rspatial/terra for local dev.
+# ── terra C++ core (mirrored from rspatial/terra src/) ──────────────────────
+# Lives in terra_core/; Python package + extension output live under src/.
+# Optional _geospat_cpp_src: legacy CI vendored copy of terra_core.
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/_geospat_cpp_src")
     set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/_geospat_cpp_src")
+elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/terra_core/spatRaster.cpp")
+    set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/terra_core")
 elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/spatRaster.cpp")
     set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 else()
@@ -75,7 +77,7 @@ endif()
 
 # ── Build the extension ──────────────────────────────────────────────────────
 pybind11_add_module(_terra
-    src/terra_module.cpp
+    native/terra_module.cpp
     ${TERRA_SOURCES}
 )
 

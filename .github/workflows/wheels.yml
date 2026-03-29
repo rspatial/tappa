@@ -1,6 +1,6 @@
 # Windows wheels + PyPI on tag push (tags prefixed with "py", separate from R/CRAN tags).
 # Package root is this repository (not a python/ subfolder of terra).
-# Requires terra core .cpp sources under src/ alongside terra_module.cpp.
+# Requires terra C++ sources under terra_core/ (mirrored from rspatial/terra).
 
 name: Python wheels
 
