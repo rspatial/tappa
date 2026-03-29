@@ -5,3 +5,4 @@ _tappa_cpp_src/
 __pycache__/
 *.py[cod]
 .pytest_cache/
+*.so
