@@ -1,6 +1,6 @@
-# terra (Python version)
+# teppa
 
-This is the Python version of the **terra** package.
+tappa is the Python version of the **R terra** package.
 
 Note that this is an alpha (very early) version! Please report any bugs or suggestions.
 
