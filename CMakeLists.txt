@@ -46,8 +46,8 @@ endif()
 
 file(GLOB TERRA_SOURCES "${TERRA_SRC_DIR}/*.cpp")
 
-# Remove the three Rcpp-dependent files; everything else is pure C++.
-list(FILTER TERRA_SOURCES EXCLUDE REGEX ".*(RcppModule|RcppFunctions|RcppExports)\\.cpp$")
+# Drop Rcpp bridge sources (R package only); matches sync excludes on terra_core/.
+list(FILTER TERRA_SOURCES EXCLUDE REGEX ".*/Rcpp[^/]*\\.cpp$")
 
 
 # GEOS feature macros (GEOS350, GEOS380, …) come from geos_spat.h via GEOS_VERSION_*.
