@@ -2,7 +2,10 @@
 
 tappa is the Python version of the *R* [terra package](https://github.com/rspatial/terra).
 
-Note that this is an alpha (very early) version! Please report any bugs or suggestions.
+Note that this is an alpha (very early) version!
+
+Please try it, and report any bugs you find or suggestions you may have.
+
 
 ---
 

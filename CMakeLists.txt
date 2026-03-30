@@ -32,12 +32,12 @@ endif()
 
 
 # ── terra C++ core (mirrored from rspatial/terra src/) ──────────────────────
-# Lives in terra_core/; Python package + extension output live under src/.
-# Optional _tappa_cpp_src: legacy CI vendored copy of terra_core.
+# Lives in terra_lib/; Python package + extension output live under src/.
+# Optional _tappa_cpp_src: legacy CI vendored copy of terra_lib.
 if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/_tappa_cpp_src")
     set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/_tappa_cpp_src")
-elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/terra_core/spatRaster.cpp")
-    set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/terra_core")
+elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/terra_lib/spatRaster.cpp")
+    set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/terra_lib")
 elseif (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/src/spatRaster.cpp")
     set(TERRA_SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 else()
@@ -46,7 +46,7 @@ endif()
 
 file(GLOB TERRA_SOURCES "${TERRA_SRC_DIR}/*.cpp")
 
-# Drop Rcpp bridge sources (R package only); matches sync excludes on terra_core/.
+# Drop Rcpp bridge sources (R package only); matches sync excludes on terra_lib/.
 list(FILTER TERRA_SOURCES EXCLUDE REGEX ".*/Rcpp[^/]*\\.cpp$")
 
 
