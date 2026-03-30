@@ -1,5 +1,5 @@
 """
-tappa — Python bindings for the terra geospatial C++ library (R-terra API).
+terra — Python bindings for the terra geospatial C++ library.
 
 The compiled extension ``_terra`` exposes the same core C++ classes as the R
 package.  The functions in this package mirror the **R** ``terra`` API so that
@@ -127,7 +127,7 @@ from .generics import (                                               # noqa: F4
     disagg, segregate, selectRange, sort_raster,
     range_fill, weighted_mean,
     # raster analysis
-    boundaries, patches, cellSize, surfArea, terrain,
+    boundaries, patches, cellSize, surfArea, terrain, shade, nidp,
     sieve, rectify, stretch, scale_linear, scale_raster,
     quantile_raster, atan_2,
     # raster processing
@@ -317,7 +317,7 @@ __all__ = [
     "disagg", "segregate", "selectRange", "sort_raster",
     "range_fill", "weighted_mean",
     # raster analysis
-    "boundaries", "patches", "cellSize", "surfArea", "terrain",
+    "boundaries", "patches", "cellSize", "surfArea", "terrain", "shade", "nidp",
     "sieve", "rectify", "stretch", "scale_linear", "scale_raster",
     "quantile_raster", "atan_2",
     # raster processing

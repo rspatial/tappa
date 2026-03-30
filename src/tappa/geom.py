@@ -18,6 +18,8 @@ from ._terra import SpatExtent, SpatOptions, SpatVector
 _cpp_vect_union      = SpatVector.union
 _cpp_vect_intersect  = SpatVector.intersect
 _cpp_vect_erase      = SpatVector.erase
+_cpp_vect_buffer     = SpatVector.buffer
+_cpp_vect_simplify   = SpatVector.simplify
 
 __all__ = [
     # validity
@@ -351,8 +353,8 @@ def buffer_vect(
         w = [float(width)] * x.nrow()
     else:
         w = [float(v) for v in width]
-    x = x.buffer(w, quadsegs, capstyle.lower(), joinstyle.lower(),
-                 mitrelimit, singlesided)
+    x = _cpp_vect_buffer(x, w, quadsegs, capstyle.lower(), joinstyle.lower(),
+                         mitrelimit, singlesided)
     return messages(x, "buffer")
 
 
@@ -614,7 +616,7 @@ def simplify_geom(
     Returns:
         SpatVector with simplified geometries.
     """
-    x = x.simplify(tolerance, preserve_topology)
+    x = _cpp_vect_simplify(x, tolerance, preserve_topology)
     x = messages(x, "simplifyGeom")
     if make_valid_after:
         x = make_valid(x)

@@ -29,6 +29,7 @@ _cpp = {
     "rast.patches":    SpatRaster.patches,
     "rast.patches2":   SpatRaster.patches2,
     "rast.terrain":    SpatRaster.terrain,
+    "rast.hillshade":  SpatRaster.hillshade,
     "rast.sieve":      SpatRaster.sieve,
     "rast.stretch":    SpatRaster.stretch,
     "rast.trim":       SpatRaster.trim,
@@ -577,6 +578,32 @@ def terrain(
     vlist = [v] if isinstance(v, str) else list(v)
     x = _cpp["rast.terrain"](x, vlist, neighbors, unit == "degrees", 0, opt)
     return messages(x, "terrain")
+
+
+def nidp(
+    x: SpatRaster,
+    filename: str = "",
+    **kw: Any,
+) -> SpatRaster:
+    """Number of input drainage paths — like R ``NIDP()``."""
+    opt = _opt(filename, **kw)
+    x = x.NIDP2(opt)
+    return messages(x, "NIDP")
+
+
+def shade(
+    slope: SpatRaster,
+    aspect: SpatRaster,
+    angle: float = 45.0,
+    direction: float = 0.0,
+    normalize: bool = False,
+    filename: str = "",
+    **kw: Any,
+) -> SpatRaster:
+    """Hillshade — like R ``shade()``."""
+    opt = _opt(filename, **kw)
+    x = _cpp["rast.hillshade"](slope, aspect, [angle], [direction], normalize, opt)
+    return messages(x, "shade")
 
 
 def sieve(

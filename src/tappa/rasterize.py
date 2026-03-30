@@ -112,7 +112,8 @@ def rasterize(
             out = set_names_rast(out, [str(n) for n in split_names])
         return out
 
-    geom_type = x.geomtype()
+    geom_type_raw = x.geomtype()
+    geom_type = geom_type_raw[0] if isinstance(geom_type_raw, list) else geom_type_raw
 
     if "points" in geom_type.lower():
         xy = np.array(x.coordinates(), dtype=float).reshape(-1, 2)

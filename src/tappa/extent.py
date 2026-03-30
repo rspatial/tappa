@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional
 
 from ._helpers import messages
 from ._terra import SpatExtent
 
-__all__ = ["ext"]
+__all__ = ["ext", "intersect_ext"]
 
 
 def ext(
@@ -24,8 +24,8 @@ def ext(
     * With **numpy**, a 2-column coordinate matrix uses column-wise min/max.
     """
     if len(args) == 0:
-        e = SpatExtent()
-        return messages(e, "ext")
+        # Return an explicitly invalid extent, matching R's ext() behaviour.
+        return SpatExtent(0.0, -1.0, 0.0, -1.0)
 
     if len(args) == 1:
         a = args[0]
@@ -78,3 +78,16 @@ def ext(
         return messages(e, "ext")
 
     raise TypeError("ext: invalid arguments")
+
+
+def intersect_ext(
+    e1: SpatExtent,
+    e2: SpatExtent,
+) -> "Optional[SpatExtent]":
+    """
+    Return the intersection of two extents, or ``None`` if they don't overlap.
+    """
+    result = e1.intersect(e2)
+    if not result.valid_notempty:
+        return None
+    return result

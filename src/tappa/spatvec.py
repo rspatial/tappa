@@ -17,26 +17,26 @@ def _opt() -> SpatOptions:
 # geometry type predicates
 # ---------------------------------------------------------------------------
 
-def geomtype(x: SpatVector) -> str:
-    """Return the geometry type of *x*: ``'points'``, ``'lines'``, or ``'polygons'``."""
+def geomtype(x: SpatVector) -> List[str]:
+    """Return the geometry type of *x* as a one-element list: ``['points']``, ``['lines']``, or ``['polygons']``."""
     # Must use C++ ``type()``, not ``geomtype()`` — the latter is patched onto
     # SpatVector by register_methods() and delegates back here (recursion).
-    return x.type()
+    return [x.type()]
 
 
 def is_lines(x: SpatVector) -> bool:
     """Return True if *x* is a line geometry."""
-    return geomtype(x) == "lines"
+    return geomtype(x)[0] == "lines"
 
 
 def is_polygons(x: SpatVector) -> bool:
     """Return True if *x* is a polygon geometry."""
-    return geomtype(x) == "polygons"
+    return geomtype(x)[0] == "polygons"
 
 
 def is_points(x: SpatVector) -> bool:
     """Return True if *x* is a point geometry."""
-    return "points" in geomtype(x)
+    return "points" in geomtype(x)[0]
 
 
 # ---------------------------------------------------------------------------
@@ -135,7 +135,7 @@ def crds(
         arr = np.column_stack([raw[0], raw[1]])
     else:
         if as_list:
-            gt = geomtype(x)
+            gt = geomtype(x)[0]
             if gt == "lines":
                 return x.linesNA()
             elif gt == "polygons":

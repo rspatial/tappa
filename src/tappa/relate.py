@@ -54,6 +54,9 @@ def is_related(
     """
     xv = _to_vect(x)
     yv = _to_vect(y)
+    # C++ getPrepRelateFun has no handler for "equals"; use DE-9IM directly.
+    if relation.lower() == "equals":
+        relation = "T*F**FFF*"
     out = xv.is_related(yv, relation)
     messages(xv, "is_related")
     return np.array(out, dtype=bool)

@@ -44,8 +44,8 @@ def set_window(
         xc.removeWindow()
         return xc
 
-    from .extent import ext as make_ext, intersect_ext
-    e = make_ext(x)
+    from .extent import intersect_ext
+    e = x.extent
     value = intersect_ext(e, value)
     if value is None:
         raise ValueError("window does not overlap with x")
