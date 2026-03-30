@@ -215,6 +215,8 @@ from .spatvec import (                                                # noqa: F4
     expanse, perim, nseg,
     fill_holes, vect_as_df, geom_as_wkt,
 )
+from .sds import SpatRasterDataset, sds                              # noqa: F401
+from .sprc import SprcCollection, sprc                               # noqa: F401
 
 __version__ = "0.1.0"
 
@@ -356,5 +358,8 @@ __all__ = [
     "SpatDataFrame", "SpatFactor", "SpatTime_v", "SpatSRS",
     "SpatMessages", "SpatCategories", "SpatVectorCollection",
     "SpatVectorProxy", "SpatRasterCollection", "SpatRasterStack",
+    # sds / sprc
+    "SpatRasterDataset", "sds",
+    "SprcCollection", "sprc",
     "__version__",
 ]
