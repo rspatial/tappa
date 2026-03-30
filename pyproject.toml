@@ -1,5 +1,5 @@
 [build-system]
-requires = ["scikit-build-core>=0.9,<0.10", "pybind11>=2.12", "ninja"]
+requires = ["scikit-build-core>=0.9,<0.10", "pybind11>=2.12"]
 build-backend = "scikit_build_core.build"
 
 
@@ -29,8 +29,18 @@ Repository = "https://github.com/rspatial/tappa"
 # Let scikit-build-core find our CMakeLists.txt in the same directory.
 cmake.build-type = "Release"
 
+# Use Unix Makefiles by default so that Linux/macOS builds do not require
+# ninja to be on PATH.  Old pip (22.x on Ubuntu 22.04) does not add the
+# build-env bin/ to PATH, so the ninja PyPI package cannot be found by
+# scikit-build-core 0.9.x even when it is listed in build-system.requires.
+# cmake.generator was only added in scikit-build-core 0.10, so we must use
+# cmake.args here.  Windows CI overrides this via SKBUILD_CMAKE_ARGS in
+# [tool.cibuildwheel.windows] below (ninja is pre-installed on GH Actions).
+cmake.args = ["-GUnix Makefiles"]
+
 # The installed package is everything under src/tappa/
 wheel.packages = ["src/tappa"]
+wheel.license-files = []
 
 # Make `pip install -e .` work: build the extension in-place.
 build-dir = "build/{wheel_tag}"
@@ -53,4 +63,7 @@ test-command = "python -c \"import tappa; print('tappa', tappa.__file__)\""
 before-all = "vcpkg install gdal geos proj --triplet x64-windows"
 before-build = "pip install delvewheel"
 repair-wheel-command = "delvewheel repair --add-path C:/vcpkg/installed/x64-windows/bin -w {dest_dir} {wheel}"
-environment = { CMAKE_TOOLCHAIN_FILE = "C:/vcpkg/scripts/buildsystems/vcpkg.cmake", VCPKG_TARGET_TRIPLET = "x64-windows" }
+# Override the Unix Makefiles default with Ninja for Windows (ninja.exe is
+# pre-installed on GitHub Actions windows-latest runners).
+# SKBUILD_CMAKE_ARGS replaces cmake.args from pyproject.toml entirely.
+environment = { CMAKE_TOOLCHAIN_FILE = "C:/vcpkg/scripts/buildsystems/vcpkg.cmake", VCPKG_TARGET_TRIPLET = "x64-windows", SKBUILD_CMAKE_ARGS = "-GNinja" }
