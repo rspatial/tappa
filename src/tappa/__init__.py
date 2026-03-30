@@ -136,6 +136,8 @@ from .generics import (                                               # noqa: F4
     project_vector, shift_vect, rotate_vect, rescale_vect, trans_vect,
     # scoff
     scoff, scoff_set,
+    # local / cell-based
+    roll, thresh, select_highest, divide, approximate, extract_range,
 )
 
 # ---- New translation modules -----------------------------------------------
@@ -326,6 +328,7 @@ __all__ = [
     "project_vector", "shift_vect", "rotate_vect", "rescale_vect", "trans_vect",
     # scoff
     "scoff", "scoff_set",
+    "roll", "thresh", "select_highest", "divide", "approximate", "extract_range",
     # arith (Arith_generics.R)
     "is_na", "not_na", "is_true", "is_false",
     "is_nan", "is_finite", "is_infinite",

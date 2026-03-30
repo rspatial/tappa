@@ -64,6 +64,9 @@ __all__ = [
     "trans_vect",
     # scoff
     "scoff", "scoff_set",
+    # new local / cell-based
+    "roll", "thresh", "select_highest", "divide", "approximate",
+    "extract_range",
 ]
 
 
@@ -901,3 +904,511 @@ def scoff_set(
         x.setScaleOffset(sc, of)
         x.setValueType(0)
     return messages(x, "scoff<-")
+
+
+# ── New local / cell-based functions ─────────────────────────────────────────
+
+def _read_bsq(x: SpatRaster) -> "np.ndarray":
+    """Read all raster values as a (nlyr, ncell) float64 array (BSQ order)."""
+    import numpy as np
+    x.readStart()
+    try:
+        raw = np.array(x.readValues(0, x.nrow(), 0, x.ncol()), dtype=float)
+    finally:
+        x.readStop()
+    return raw.reshape(int(x.nlyr()), int(x.ncell()))
+
+
+def _write_bsq(template: SpatRaster, data: "np.ndarray") -> SpatRaster:
+    """Create a new raster with the same geometry as *template*, filled with
+    *data* given as a (nlyr, ncell) float64 array (BSQ order).
+
+    Each layer is written separately to avoid setValues issues with
+    multi-source rasters (created via addSource).
+    """
+    from .values import set_values
+    from ._terra import SpatOptions as _SO
+
+    nlyr = int(data.shape[0])
+    opt = _SO()
+
+    # Get a single-layer geometry template (first layer of template)
+    base = template.subset([0], opt)
+
+    layers = []
+    for i in range(nlyr):
+        lyr = set_values(base, data[i].tolist())
+        layers.append(lyr)
+
+    if nlyr == 1:
+        return layers[0]
+
+    out = layers[0].deepcopy()
+    for lyr in layers[1:]:
+        out.addSource(lyr, True, opt)
+    return out
+
+
+def roll(
+    x: SpatRaster,
+    n: int = 3,
+    fun: Union[str, Any] = "mean",
+    type_: str = "around",
+    circular: bool = False,
+    na_rm: bool = False,
+    filename: str = "",
+    **kw: Any,
+) -> SpatRaster:
+    """
+    Rolling-window statistics across layers — like R ``roll()``.
+
+    Parameters
+    ----------
+    x : SpatRaster
+    n : int
+        Window width (number of layers).
+    fun : str or callable
+        Aggregation function: ``"mean"``, ``"sum"``, ``"min"``, ``"max"``,
+        ``"median"``, ``"sd"``, or any callable.
+    type_ : str
+        ``"around"`` (centred), ``"to"`` (trailing), or ``"from"`` (leading).
+    circular : bool
+        Wrap around at the edges.
+    na_rm : bool
+        Ignore NaN values.
+    """
+    import numpy as np
+
+    n = max(1, int(round(abs(n))))
+    nl = x.nlyr()
+
+    mat = _read_bsq(x).T  # (ncell, nlyr)
+    ncell = mat.shape[0]
+    result = np.full((ncell, nl), np.nan)
+
+    _agg = {
+        "mean":   (np.nanmean   if na_rm else lambda a, **kw: np.mean(a, **kw)),
+        "sum":    (np.nansum    if na_rm else lambda a, **kw: np.sum(a, **kw)),
+        "min":    (np.nanmin    if na_rm else lambda a, **kw: np.min(a, **kw)),
+        "max":    (np.nanmax    if na_rm else lambda a, **kw: np.max(a, **kw)),
+        "median": (np.nanmedian if na_rm else lambda a, **kw: np.median(a, **kw)),
+        "sd":     (lambda a, axis: np.nanstd(a, axis=axis, ddof=1)
+                   if na_rm else lambda a, axis: np.std(a, axis=axis, ddof=1)),
+    }
+    fun_str = fun.lower() if isinstance(fun, str) else None
+    agg_fn = _agg.get(fun_str) if fun_str else None
+
+    for j in range(nl):
+        t = type_.lower()
+        if t == "around":
+            hn = n // 2
+            if circular:
+                idx = [(j - hn + k) % nl for k in range(n)]
+            else:
+                idx = [i for i in range(j - hn, j - hn + n) if 0 <= i < nl]
+        elif t == "to":
+            if circular:
+                idx = [(j - n + 1 + k) % nl for k in range(n)]
+            else:
+                idx = list(range(max(0, j - n + 1), j + 1))
+        elif t == "from":
+            if circular:
+                idx = [(j + k) % nl for k in range(n)]
+            else:
+                idx = list(range(j, min(nl, j + n)))
+        else:
+            raise ValueError(f"roll: unknown type {type_!r}; use 'around', 'to', or 'from'")
+
+        if not idx:
+            continue
+        window = mat[:, idx]  # (ncell, window_size)
+
+        if agg_fn is not None:
+            result[:, j] = agg_fn(window, axis=1)
+        elif callable(fun):
+            for i in range(ncell):
+                row = window[i]
+                if na_rm:
+                    row = row[~np.isnan(row)]
+                result[i, j] = float(fun(row)) if len(row) > 0 else np.nan
+        else:
+            raise ValueError(f"roll: unsupported fun={fun!r}")
+
+    out = _write_bsq(x, result.T)
+    return messages(out, "roll")
+
+
+def _otsu(values: "np.ndarray", counts: "np.ndarray") -> float:
+    """Otsu's method: threshold that maximises inter-class variance."""
+    import numpy as np
+    n = len(values)
+    w1 = np.cumsum(counts, dtype=float)
+    w2 = w1[-1] + counts - w1
+    cv = counts * values
+    m1 = np.cumsum(cv, dtype=float)
+    m2 = m1[-1] + cv - m1
+    with np.errstate(invalid="ignore", divide="ignore"):
+        varian = w1 * w2 * ((m2 / w2) - (m1 / w1)) ** 2
+    varian = np.where(np.isfinite(varian), varian, -np.inf)
+    mxi = np.where(varian == varian.max())[0]
+    return float((values[mxi[0]] + values[mxi[-1]]) / 2.0)
+
+
+def thresh(
+    x: SpatRaster,
+    method: str = "mean",
+    max_cell: int = 1_000_000,
+    as_raster: bool = True,
+    filename: str = "",
+    **kw: Any,
+) -> Any:
+    """
+    Threshold raster into binary 0/1 — like R ``thresh()``.
+
+    Parameters
+    ----------
+    x : SpatRaster
+    method : str
+        ``"mean"``, ``"median"``, or ``"otsu"``.
+    max_cell : int
+        Maximum cells sampled for ``"median"`` method.
+    as_raster : bool
+        Return a SpatRaster (default) or list of per-layer threshold values.
+    """
+    import numpy as np
+
+    method = method.lower()
+    if method not in ("mean", "median", "otsu"):
+        raise ValueError(f"thresh: method must be 'mean', 'median', or 'otsu'; got {method!r}")
+
+    nl = x.nlyr()
+    mat = _read_bsq(x)  # (nlyr, ncell)
+    th: List[float] = []
+
+    for i in range(nl):
+        v = mat[i]
+        valid = v[~np.isnan(v)]
+        if len(valid) == 0:
+            th.append(float("nan"))
+            continue
+        if method == "mean":
+            th.append(float(np.mean(valid)))
+        elif method == "median":
+            if len(valid) > max_cell:
+                idx = np.random.choice(len(valid), max_cell, replace=False)
+                valid = valid[idx]
+            th.append(float(np.median(valid)))
+        else:  # otsu
+            rng_min, rng_max = float(np.min(valid)), float(np.max(valid))
+            breaks = np.linspace(rng_min, rng_max, 257)
+            # bin each value
+            bin_idx = np.searchsorted(breaks, valid, side="right") - 1
+            bin_idx = np.clip(bin_idx, 0, 255)
+            counts = np.bincount(bin_idx, minlength=256).astype(float)
+            mids = breaks[:256] + (breaks[1] - breaks[0]) / 2.0
+            th.append(_otsu(mids, counts))
+
+    if not as_raster:
+        return th
+
+    opt = _opt(filename, **kw)
+    out = x.arith_numb(th, ">", False, False, opt)
+    return messages(out, "thresh")
+
+
+def select_highest(
+    x: SpatRaster,
+    n: int = 1,
+    low: bool = False,
+    filename: str = "",
+    **kw: Any,
+) -> SpatRaster:
+    """
+    Mark the *n* highest (or lowest) cells — like R ``selectHighest()``.
+
+    Returns a raster with 1 at the selected cells and NA elsewhere.
+
+    Parameters
+    ----------
+    x : SpatRaster
+        Only the first layer is used.
+    n : int
+        Number of cells to select.
+    low : bool
+        Select the *n* lowest values instead (like R ``low=TRUE``).
+    """
+    import numpy as np
+    from .subset import subset_rast
+
+    if x.nlyr() > 1:
+        x = subset_rast(x, 0)
+
+    ncell_total = x.nrow() * x.ncol()
+    n = min(ncell_total, max(1, int(n)))
+
+    v = _read_bsq(x)[0]  # (ncell,)
+    valid_idx = np.where(~np.isnan(v))[0]
+    valid_vals = v[valid_idx]
+
+    if len(valid_idx) == 0:
+        out = _write_bsq(x, np.full((1, ncell_total), np.nan))
+        return messages(out, "selectHighest")
+
+    k = min(n, len(valid_idx))
+    if low:
+        order_within = np.argsort(valid_vals, kind="stable")[:k]
+    else:
+        order_within = np.argsort(valid_vals, kind="stable")[::-1][:k]
+
+    selected = valid_idx[order_within]
+    out_vals = np.full(ncell_total, np.nan)
+    out_vals[selected] = 1.0
+
+    out = _write_bsq(x, out_vals.reshape(1, -1))
+    return messages(out, "selectHighest")
+
+
+def _divide_split_ns(v2d: "np.ndarray", r0: int, r1: int, c0: int, c1: int):
+    """Find the NS split row for a region using cumulative value sums."""
+    import numpy as np
+    region = np.where(np.isnan(v2d[r0:r1, c0:c1]), 0.0, v2d[r0:r1, c0:c1])
+    row_sums = region.sum(axis=1)
+    cumsum = np.cumsum(row_sums)
+    total = cumsum[-1] if len(cumsum) > 0 else 0.0
+    if total == 0.0:
+        m = (r1 - r0) // 2
+    else:
+        m = int(np.argmin(np.abs(cumsum - total / 2.0)))
+    split = r0 + m + 1
+    return (r0, split, c0, c1), (split, r1, c0, c1)
+
+
+def _divide_split_we(v2d: "np.ndarray", r0: int, r1: int, c0: int, c1: int):
+    """Find the WE split column for a region using cumulative value sums."""
+    import numpy as np
+    region = np.where(np.isnan(v2d[r0:r1, c0:c1]), 0.0, v2d[r0:r1, c0:c1])
+    col_sums = region.sum(axis=0)
+    cumsum = np.cumsum(col_sums)
+    total = cumsum[-1] if len(cumsum) > 0 else 0.0
+    if total == 0.0:
+        m = (c1 - c0) // 2
+    else:
+        m = int(np.argmin(np.abs(cumsum - total / 2.0)))
+    split = c0 + m + 1
+    return (r0, r1, c0, split), (r0, r1, split, c1)
+
+
+def divide(
+    x: SpatRaster,
+    n: int = 2,
+    start: str = "ns",
+    as_raster: bool = False,
+    na_rm: bool = True,
+    filename: str = "",
+    **kw: Any,
+) -> SpatRaster:
+    """
+    Divide a raster into *n* approximately equal-value zones by alternating
+    north-south and east-west splits — like R ``divide(SpatRaster)``.
+
+    Parameters
+    ----------
+    x : SpatRaster
+        Only the first layer is used.
+    n : int
+        Number of splits (not the final number of zones; each split doubles
+        the number of regions, like R's loop ``for (i in 1:n)``).
+    start : str
+        ``"ns"`` (north-south first) or ``"ew"`` (east-west first).
+    as_raster : bool
+        Return a zone raster (default ``False`` mimics R's default, but
+        the Python API always returns a SpatRaster for simplicity).
+    na_rm : bool
+        After rasterizing zones, mask cells that are NA in *x*.
+    """
+    import numpy as np
+    from .subset import subset_rast
+
+    if x.nlyr() > 1:
+        import warnings as _w
+        _w.warn("divide: only the first layer is used")
+        x = subset_rast(x, 0)
+
+    n = max(1, int(round(n)))
+    nrow_r = x.nrow()
+    ncol_r = x.ncol()
+
+    v2d = _read_bsq(x)[0].reshape(nrow_r, ncol_r)
+
+    regions = [(0, nrow_r, 0, ncol_r)]
+    north = start.lower() == "ns"
+
+    for _ in range(n):
+        new_regions: List[Any] = []
+        for reg in regions:
+            r0, r1, c0, c1 = reg
+            if north:
+                if r1 - r0 < 2:
+                    new_regions.append(reg)
+                else:
+                    a, b = _divide_split_ns(v2d, r0, r1, c0, c1)
+                    if a[0] < a[1]:
+                        new_regions.append(a)
+                    if b[0] < b[1]:
+                        new_regions.append(b)
+                    if a[0] >= a[1] and b[0] >= b[1]:
+                        new_regions.append(reg)
+            else:
+                if c1 - c0 < 2:
+                    new_regions.append(reg)
+                else:
+                    a, b = _divide_split_we(v2d, r0, r1, c0, c1)
+                    if a[2] < a[3]:
+                        new_regions.append(a)
+                    if b[2] < b[3]:
+                        new_regions.append(b)
+                    if a[2] >= a[3] and b[2] >= b[3]:
+                        new_regions.append(reg)
+        regions = new_regions
+        north = not north
+
+    zones = np.zeros((nrow_r, ncol_r), dtype=float)
+    for zone_id, (r0, r1, c0, c1) in enumerate(regions, 1):
+        zones[r0:r1, c0:c1] = float(zone_id)
+
+    if na_rm:
+        zones = np.where(np.isnan(v2d), np.nan, zones)
+
+    out = _write_bsq(x, zones.reshape(1, -1))
+    return messages(out, "divide")
+
+
+def approximate(
+    x: SpatRaster,
+    method: str = "linear",
+    z: Optional[Any] = None,
+    na_rule: int = 1,
+    filename: str = "",
+    **kw: Any,
+) -> SpatRaster:
+    """
+    Fill NA values by interpolation across layers — like R ``approximate()``.
+
+    Parameters
+    ----------
+    x : SpatRaster
+        Multi-layer raster; each layer corresponds to one time step (or index).
+    method : str
+        ``"linear"`` (default) or ``"constant"`` (nearest step; passed to
+        ``numpy.interp`` via ``left``/``right`` logic).
+    z : array-like, optional
+        X-axis positions for each layer.  Defaults to ``0, 1, …, nlyr-1``.
+    na_rule : int
+        ``1`` — single-valid-layer cells: copy the valid value to all layers.
+        ``2`` — leave them as-is (only interpolate cells with ≥ 2 valid layers).
+    """
+    import numpy as np
+    import warnings as _w
+
+    nl = x.nlyr()
+    if nl < 2:
+        _w.warn("approximate: cannot interpolate with a single layer")
+        return x.deepcopy()
+
+    if z is None:
+        xout = np.arange(nl, dtype=float)
+    else:
+        xout = np.asarray(z, dtype=float)
+        if len(xout) != nl:
+            raise ValueError("approximate: length of z must equal nlyr(x)")
+
+    mat = _read_bsq(x).T  # (ncell, nlyr)
+    ncell_r = mat.shape[0]
+    result = mat.copy()
+
+    for i in range(ncell_r):
+        row = mat[i]
+        valid_mask = ~np.isnan(row)
+        n_valid = int(valid_mask.sum())
+
+        if n_valid == 0:
+            continue
+
+        if n_valid == 1:
+            if na_rule == 1:
+                result[i, :] = row[valid_mask][0]
+            continue
+
+        xp = xout[valid_mask]
+        fp = row[valid_mask]
+        if method == "linear":
+            result[i, :] = np.interp(xout, xp, fp)
+        else:
+            # constant / nearest: step function
+            result[i, :] = np.interp(xout, xp, fp, left=fp[0], right=fp[-1])
+
+    out = _write_bsq(x, result.T)
+    return messages(out, "approximate")
+
+
+def extract_range(
+    x: SpatRaster,
+    y: Any,
+    first: Union[int, List[int]],
+    last: Union[int, List[int]],
+    lyr_fun: Optional[Any] = None,
+    na_rm: bool = True,
+) -> List[Any]:
+    """
+    Extract a per-feature layer range from *x* at locations *y* —
+    like R ``extractRange()``.
+
+    Parameters
+    ----------
+    x : SpatRaster
+    y : SpatVector, array, or list of (x, y) pairs
+        Sampling locations.
+    first : int or list of int
+        0-based index of the first layer to extract for each feature.
+        A scalar applies the same start index to all features.
+    last : int or list of int
+        0-based index of the last layer to extract (inclusive) for each
+        feature.  A scalar applies the same end index to all features.
+    lyr_fun : callable, optional
+        If provided, applied to each extracted row (1-D array) to reduce
+        it to a scalar.
+    na_rm : bool
+        Passed to the underlying ``extract()`` call.
+
+    Returns
+    -------
+    list of DataFrames (one per feature) when *lyr_fun* is None, or
+    list of scalars when *lyr_fun* is given.
+    """
+    from .extract import extract as _extract
+
+    e = _extract(x, y, na_rm=na_rm, ID=False)
+
+    n = len(e)
+    # Normalise first/last to per-row lists
+    if isinstance(first, int):
+        first_list = [first] * n
+    else:
+        first_list = [int(f) for f in first]
+    if isinstance(last, int):
+        last_list = [last] * n
+    else:
+        last_list = [int(f) for f in last]
+
+    result: List[Any] = []
+    for i in range(n):
+        row = e.iloc[i, first_list[i]: last_list[i] + 1]
+        if lyr_fun is not None:
+            import numpy as np
+            vals = row.to_numpy(dtype=float)
+            if na_rm:
+                vals = vals[~np.isnan(vals)]
+            result.append(lyr_fun(vals))
+        else:
+            result.append(row.to_frame().T.reset_index(drop=True))
+    return result
