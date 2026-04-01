@@ -932,6 +932,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("add",         &SpatRasterCollection::push_back)
         .def("merge",       &SpatRasterCollection::merge)
         .def("mosaic",      &SpatRasterCollection::mosaic)
+        .def("blend",       &SpatRasterCollection::blend)
         .def("morph",       &SpatRasterCollection::morph)
         .def("crop",        &SpatRasterCollection::crop)
         .def("addTag",      &SpatRasterCollection::addTag)

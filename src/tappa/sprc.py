@@ -155,6 +155,22 @@ class SprcCollection:
         opt = _opt(filename, overwrite)
         return _msg(self._ptr.mosaic(fun, opt), "mosaic")
 
+    def blend(
+        self,
+        filename: str = "",
+        overwrite: bool = False,
+    ) -> SpatRaster:
+        """
+        Blend all rasters using distance-weighted feathering —
+        like R ``blend(SpatRasterCollection)``.
+
+        Overlapping cells get a weighted average where the weight is
+        the distance from the cell to the nearest extent edge of each
+        raster.  The result is order-independent.
+        """
+        opt = _opt(filename, overwrite)
+        return _msg(self._ptr.blend(opt), "blend")
+
     def crop(
         self,
         extent: Any,

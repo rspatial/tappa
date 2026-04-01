@@ -108,6 +108,39 @@ def mosaic(
     return messages(xc, "mosaic")
 
 
+def blend(
+    x: SpatRaster,
+    *others: SpatRaster,
+    filename: str = "",
+    overwrite: bool = False,
+) -> SpatRaster:
+    """
+    Blend overlapping SpatRasters using distance-weighted feathering.
+
+    Unlike merge (first-value-wins) or mosaic (summary function), blend
+    produces smooth gradients in overlap zones by weighting each raster's
+    contribution by the distance from the cell to the nearest edge of that
+    raster's extent.  The result is independent of the order of the rasters.
+
+    Parameters
+    ----------
+    x : SpatRaster
+    *others : SpatRaster
+        Additional rasters to blend.
+    filename : str
+    overwrite : bool
+
+    Returns
+    -------
+    SpatRaster
+    """
+    all_rasters = [x] + list(others)
+    opt = spatoptions(filename, overwrite)
+    rc = _sprc_from_rasters(all_rasters)
+    xc = rc.blend(opt)
+    return messages(xc, "blend")
+
+
 # ---------------------------------------------------------------------------
 # Vector attribute table join
 # ---------------------------------------------------------------------------
