@@ -1,7 +1,7 @@
 """
 Tests ported from inst/tinytest/test_merge.R
 
-Covers merge, mosaic, and blend.
+Covers merge and mosaic (including fun="blend").
 """
 import numpy as np
 import pytest
@@ -11,7 +11,7 @@ pytest.importorskip("tappa._terra")
 import tappa as pt
 from tappa.rast import rast
 from tappa.values import set_values, values as get_values
-from tappa.merge import merge, mosaic, blend
+from tappa.merge import merge, mosaic
 from tappa.names import set_names_inplace
 
 
@@ -147,9 +147,9 @@ class TestBlend:
         return x, y, z
 
     def test_blend_diagonal(self):
-        """Diagonal of blend(x,y,z) matches R output."""
+        """Diagonal of mosaic(x,y,z, fun='blend') matches R output."""
         x, y, z = self._make_xyz()
-        m = blend(x, y, z)
+        m = mosaic(x, y, z, fun="blend")
         mat = _vals_2d(m)
         d = np.diag(mat)
 
@@ -176,7 +176,7 @@ class TestBlend:
         r2 = rast(xmin=5, xmax=15, ymin=0, ymax=10, ncols=20, nrows=20)
         r2 = set_values(r2, 10.0)
 
-        m = blend(r1, r2)
+        m = mosaic(r1, r2, fun="blend")
         mat = _vals_2d(m)
 
         # overlap columns (roughly cols 10-19 in the output, which is 30 cols)
@@ -201,9 +201,9 @@ class TestBlend:
         r3 = rast(xmin=10, xmax=20, ymin=0, ymax=10, ncols=10, nrows=10)
         r3 = set_values(r3, 3.0)
 
-        m_abc = blend(r1, r2, r3)
-        m_cba = blend(r3, r2, r1)
-        m_bac = blend(r2, r1, r3)
+        m_abc = mosaic(r1, r2, r3, fun="blend")
+        m_cba = mosaic(r3, r2, r1, fun="blend")
+        m_bac = mosaic(r2, r1, r3, fun="blend")
 
         v_abc = _vals(m_abc)
         v_cba = _vals(m_cba)
@@ -219,7 +219,7 @@ class TestBlend:
         r2 = rast(xmin=5, xmax=10, ymin=0, ymax=10, ncols=5, nrows=10)
         r2 = set_values(r2, 2.0)
 
-        b = blend(r1, r2)
+        b = mosaic(r1, r2, fun="blend")
         m = merge(r1, r2)
         np.testing.assert_array_almost_equal(_vals(b), _vals(m))
 
@@ -227,5 +227,5 @@ class TestBlend:
         """Blend of a single raster returns it unchanged."""
         r = rast(xmin=0, xmax=10, ymin=0, ymax=10, ncols=10, nrows=10)
         r = set_values(r, 42.0)
-        b = blend(r)
+        b = mosaic(r, fun="blend")
         np.testing.assert_array_almost_equal(_vals(b), _vals(r))

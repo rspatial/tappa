@@ -89,7 +89,9 @@ def mosaic(
     *others : SpatRaster
     fun : str or callable
         Aggregation function: ``"mean"`` (default), ``"sum"``, ``"min"``,
-        ``"max"``, ``"first"``, ``"last"``.
+        ``"max"``, ``"median"``, ``"first"``, ``"last"``, or ``"blend"``
+        (distance-weighted feathering that produces smooth gradients in
+        overlap zones).
     filename : str
     overwrite : bool
 
@@ -98,47 +100,16 @@ def mosaic(
     SpatRaster
     """
     fun_str = fun if isinstance(fun, str) else getattr(fun, "__name__", "mean")
-    if fun_str not in {"mean", "sum", "min", "max", "first", "last"}:
-        raise ValueError(f"fun must be one of mean/sum/min/max/first/last; got {fun_str!r}")
+    if fun_str not in {"mean", "sum", "min", "max", "median", "first", "last", "blend"}:
+        raise ValueError(
+            f"fun must be one of mean/sum/min/max/median/first/last/blend; got {fun_str!r}"
+        )
 
     all_rasters = [x] + list(others)
     opt = spatoptions(filename, overwrite)
     rc = _sprc_from_rasters(all_rasters)
     xc = rc.mosaic(fun_str, opt)
     return messages(xc, "mosaic")
-
-
-def blend(
-    x: SpatRaster,
-    *others: SpatRaster,
-    filename: str = "",
-    overwrite: bool = False,
-) -> SpatRaster:
-    """
-    Blend overlapping SpatRasters using distance-weighted feathering.
-
-    Unlike merge (first-value-wins) or mosaic (summary function), blend
-    produces smooth gradients in overlap zones by weighting each raster's
-    contribution by the distance from the cell to the nearest edge of that
-    raster's extent.  The result is independent of the order of the rasters.
-
-    Parameters
-    ----------
-    x : SpatRaster
-    *others : SpatRaster
-        Additional rasters to blend.
-    filename : str
-    overwrite : bool
-
-    Returns
-    -------
-    SpatRaster
-    """
-    all_rasters = [x] + list(others)
-    opt = spatoptions(filename, overwrite)
-    rc = _sprc_from_rasters(all_rasters)
-    xc = rc.blend(opt)
-    return messages(xc, "blend")
 
 
 # ---------------------------------------------------------------------------

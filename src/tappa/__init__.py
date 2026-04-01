@@ -201,7 +201,7 @@ from .stats import (                                                  # noqa: F4
     match_rast, is_in,
     autocor, layer_cor,
 )
-from .merge import merge as merge_rast, mosaic, blend, merge_vect    # noqa: F401
+from .merge import merge as merge_rast, mosaic, merge_vect            # noqa: F401
 from .relate import is_related, relate, relate_self                  # noqa: F401
 from .subset import subset_rast, subset_vect                         # noqa: F401
 from .window import has_window, set_window, remove_window, extend    # noqa: F401
@@ -292,7 +292,7 @@ __all__ = [
     "match_rast", "is_in",
     "autocor", "layer_cor",
     # merge
-    "merge_rast", "mosaic", "blend", "merge_vect",
+    "merge_rast", "mosaic", "merge_vect",
     # relate
     "is_related", "relate", "relate_self",
     # subset
