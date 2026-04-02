@@ -30,6 +30,7 @@ def merge(
     first: bool = True,
     na_rm: bool = True,
     algo: int = 1,
+    resample: bool = False,
     method: Optional[str] = None,
     filename: str = "",
     overwrite: bool = False,
@@ -50,9 +51,13 @@ def merge(
     na_rm : bool
         Skip NA values when merging.
     algo : int
-        Internal algorithm (1 or 2).
+        Internal algorithm (1, 2, or 3).
+    resample : bool
+        If True, resample rasters that do not align with the first.
     method : str, optional
-        Blending method for smooth edges.
+        Resampling method (e.g. ``"bilinear"``, ``"near"``).
+        If ``None``, chosen automatically based on whether the raster
+        has categorical values.
     filename : str
     overwrite : bool
 
@@ -66,7 +71,7 @@ def merge(
     rc = _sprc_from_rasters(all_rasters)
     if method is None:
         method = ""
-    xc = rc.merge(first, na_rm, algo, method, opt)
+    xc = rc.merge(first, na_rm, algo, resample, method, opt)
     return messages(xc, "merge")
 
 
@@ -74,6 +79,8 @@ def mosaic(
     x: SpatRaster,
     *others: SpatRaster,
     fun: Union[str, Callable] = "mean",
+    resample: bool = False,
+    method: Optional[str] = None,
     filename: str = "",
     overwrite: bool = False,
 ) -> SpatRaster:
@@ -92,6 +99,11 @@ def mosaic(
         ``"max"``, ``"median"``, ``"first"``, ``"last"``, or ``"blend"``
         (distance-weighted feathering that produces smooth gradients in
         overlap zones).
+    resample : bool
+        If True, resample rasters that do not align with the first.
+    method : str, optional
+        Resampling method (e.g. ``"bilinear"``, ``"near"``).
+        If ``None``, chosen automatically.
     filename : str
     overwrite : bool
 
@@ -108,7 +120,9 @@ def mosaic(
     all_rasters = [x] + list(others)
     opt = spatoptions(filename, overwrite)
     rc = _sprc_from_rasters(all_rasters)
-    xc = rc.mosaic(fun_str, opt)
+    if method is None:
+        method = ""
+    xc = rc.mosaic(fun_str, resample, method, opt)
     return messages(xc, "mosaic")
 
 

@@ -117,8 +117,11 @@ class SprcCollection:
 
     def merge(
         self,
-        first: bool = False,
-        na_rm: bool = False,
+        first: bool = True,
+        na_rm: bool = True,
+        algo: int = 1,
+        resample: bool = False,
+        method: str = "",
         filename: str = "",
         overwrite: bool = False,
     ) -> SpatRaster:
@@ -132,13 +135,22 @@ class SprcCollection:
             If True, the first raster takes priority everywhere.
         na_rm : bool
             Ignore NA values when selecting.
+        algo : int
+            Internal algorithm (1, 2, or 3).
+        resample : bool
+            If True, resample rasters that do not align with the first.
+        method : str
+            Resampling method (e.g. ``"bilinear"``, ``"near"``).
+            Empty string means auto-detect.
         """
         opt = _opt(filename, overwrite)
-        return _msg(self._ptr.merge(first, na_rm, 1, "near", opt), "merge")
+        return _msg(self._ptr.merge(first, na_rm, algo, resample, method, opt), "merge")
 
     def mosaic(
         self,
         fun: str = "mean",
+        resample: bool = False,
+        method: str = "",
         filename: str = "",
         overwrite: bool = False,
     ) -> SpatRaster:
@@ -152,9 +164,14 @@ class SprcCollection:
             Aggregation function for overlap zones: ``"mean"`` (default),
             ``"min"``, ``"max"``, ``"sum"``, ``"median"``, ``"first"``,
             ``"last"``, or ``"blend"`` (distance-weighted feathering).
+        resample : bool
+            If True, resample rasters that do not align with the first.
+        method : str
+            Resampling method (e.g. ``"bilinear"``, ``"near"``).
+            Empty string means auto-detect.
         """
         opt = _opt(filename, overwrite)
-        return _msg(self._ptr.mosaic(fun, opt), "mosaic")
+        return _msg(self._ptr.mosaic(fun, resample, method, opt), "mosaic")
 
     def crop(
         self,

@@ -697,6 +697,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("setValues",
             (bool (SpatRaster::*)(std::vector<double>&, SpatOptions&))(&SpatRaster::setValues))
 
+        .def("writeRaster", &SpatRaster::writeRaster)
         .def("writeStart", &SpatRaster::writeStart)
         .def("writeStop",  &SpatRaster::writeStop)
         .def("writeValues",&SpatRaster::writeValues)
