@@ -44,8 +44,8 @@ route on Windows.
 2. **Create a conda environment** and install the geospatial dependencies:
 
    ```powershell
-   conda create -n terra python=3.12
-   conda activate terra
+   conda create -n tappa python=3.12
+   conda activate tappa
    conda install -c conda-forge gdal geos proj pybind11 cmake ninja
    ```
 
