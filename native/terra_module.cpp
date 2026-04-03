@@ -375,7 +375,8 @@ PYBIND11_MODULE(_terra, m) {
         .def("rotate_longitude",    &SpatVector::rotate_longitude)
         .def("line_merge",   &SpatVector::line_merge)
         .def("simplify",     &SpatVector::simplify)
-        .def("thin",         &SpatVector::thin)
+        .def("thin_geoms",   &SpatVector::thin_geoms)
+        .def("thin_nodes",   &SpatVector::thin_nodes)
         .def("shared_paths",
             (SpatVector (SpatVector::*)(bool))(&SpatVector::shared_paths))
         .def("shared_paths2",

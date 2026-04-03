@@ -36,6 +36,7 @@ cmake.build-type = "Release"
 # cmake.generator was only added in scikit-build-core 0.10, so we must use
 # cmake.args here.  Windows CI overrides this via SKBUILD_CMAKE_ARGS in
 # [tool.cibuildwheel.windows] below (ninja is pre-installed on GH Actions).
+# For local Windows builds, set: $env:SKBUILD_CMAKE_ARGS="-GNinja"
 cmake.args = ["-GUnix Makefiles"]
 
 # The installed package is everything under src/tappa/

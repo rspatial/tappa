@@ -32,7 +32,7 @@ __all__ = [
     "buffer_vect", "disagg_vect", "flip_vect", "spin",
     "hull", "delaunay", "voronoi", "elongate",
     "merge_lines", "make_nodes", "remove_dup_nodes",
-    "simplify_geom", "thin_geom",
+    "simplify_geom", "thin_nodes", "thin",
     "shared_paths", "snap_vect", "gaps",
     "force_ccw", "width_vect", "clearance",
     # predicates
@@ -623,7 +623,7 @@ def simplify_geom(
     return x
 
 
-def thin_geom(
+def thin_nodes(
     x: SpatVector,
     threshold: float = 1e-6,
     make_valid_after: bool = True,
@@ -641,11 +641,37 @@ def thin_geom(
     Returns:
         SpatVector with thinned geometries.
     """
-    x = x.thin(threshold)
-    x = messages(x, "thinGeom")
+    x = x.thin_nodes(threshold)
+    x = messages(x, "thinNodes")
     if make_valid_after:
         x = make_valid(x)
     return x
+
+
+def thin(
+    x: SpatVector,
+    d: float,
+    unit: str = "m",
+) -> SpatVector:
+    """
+    Subset geometries so that all remaining geometries are at least *d* apart.
+
+    Greedy spatial thinning: the first geometry is always kept, and subsequent
+    geometries are only kept if they are at least *d* away from every
+    previously kept geometry.
+
+    Args:
+        x: SpatVector (points, lines, or polygons).
+        d: Minimum distance between geometries (in the unit specified by
+            *unit*).
+        unit: ``"m"`` (meter, default) or ``"km"`` (kilometer).
+
+    Returns:
+        SpatVector with the thinned subset of geometries (with attributes).
+    """
+    opt = SpatOptions()
+    x = x.thin_geoms(d, unit, opt)
+    return messages(x, "thin")
 
 
 def shared_paths(

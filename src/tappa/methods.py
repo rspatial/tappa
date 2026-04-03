@@ -232,7 +232,7 @@ def register_methods() -> None:
         crop_vect, mask_vect,
         buffer_vect, disagg_vect, flip_vect, spin,
         hull, delaunay, voronoi,
-        simplify_geom, thin_geom, gaps,
+        simplify_geom, thin_nodes, thin, gaps,
         is_empty,
     )
     from .distance import distance_vect_self, distance_vect
@@ -258,6 +258,8 @@ def register_methods() -> None:
         "voronoi":        lambda self, **kw: voronoi(self, **kw),
         "delaunay":       lambda self, **kw: delaunay(self, **kw),
         "simplify":       lambda self, tol, **kw: simplify_geom(self, tol, **kw),
+        "thin_nodes":     lambda self, threshold=1e-6, **kw: thin_nodes(self, threshold, **kw),
+        "thin":           lambda self, d, **kw: thin(self, d, **kw),
         "is_valid":       lambda self: is_valid(self),
         "make_valid":     lambda self: make_valid(self),
         "is_empty":       lambda self: is_empty(self),

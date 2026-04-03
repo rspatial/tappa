@@ -105,7 +105,7 @@ from .geom import (                                                   # noqa: F4
     buffer_vect, disagg_vect, flip_vect, spin,
     hull, delaunay, voronoi, elongate,
     merge_lines, make_nodes, remove_dup_nodes,
-    simplify_geom, thin_geom,
+    simplify_geom, thin_nodes, thin,
     shared_paths, snap_vect, gaps,
     force_ccw, width_vect, clearance,
     # predicates
@@ -349,7 +349,7 @@ __all__ = [
     "buffer_vect", "disagg_vect", "flip_vect", "spin",
     "hull", "delaunay", "voronoi", "elongate",
     "merge_lines", "make_nodes", "remove_dup_nodes",
-    "simplify_geom", "thin_geom",
+    "simplify_geom", "thin_nodes", "thin",
     "shared_paths", "snap_vect", "gaps",
     "force_ccw", "width_vect", "clearance",
     "is_empty",

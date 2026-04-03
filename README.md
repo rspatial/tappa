@@ -37,9 +37,15 @@ and PROJ binaries with matching CMake packages, which is by far the easiest
 route on Windows.
 
 1. **Install Visual Studio Build Tools** (free) with the
-   *Desktop development with C++* workload from
-   <https://visualstudio.microsoft.com/downloads/>.
-   You need MSVC and the Windows SDK.
+   *Desktop development with C++* workload.  From PowerShell:
+
+   ```powershell
+   winget install Microsoft.VisualStudio.2022.BuildTools --override "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --passive"
+   ```
+
+   Or download the installer from
+   <https://visualstudio.microsoft.com/visual-cpp-build-tools/> and select
+   *Desktop development with C++*.
 
 2. **Create a conda environment** and install the geospatial dependencies:
 
@@ -55,17 +61,30 @@ route on Windows.
    pip install scikit-build-core numpy pandas matplotlib
    ```
 
-4. **Build and install** from the **tappa** repository root:
+4. **Activate the MSVC compiler** in your Miniforge / conda prompt.
+   This step is needed every time you open a new terminal:
 
-   ```powershell
+   ```cmd
+   "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" x64
+   ```
+
+5. **Build and install** from the **tappa** repository root.
+   The `SKBUILD_CMAKE_ARGS` variable tells scikit-build-core to use Ninja
+   instead of Unix Makefiles on Windows:
+
+   ```cmd
    cd C:\path\to\tappa
+   set SKBUILD_CMAKE_ARGS=-GNinja
    pip install -e .
    ```
 
    scikit-build-core runs CMake automatically and places the compiled
    `_terra.pyd` extension inside `src/tappa/`.
 
-5. **Verify**:
+   > **Note:** if you see a CMake error about mismatched generators, delete the
+   > `build/` directory first: `rmdir /s /q build`
+
+6. **Verify**:
 
    ```python
    import tappa as pt
