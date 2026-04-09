@@ -2,8 +2,10 @@
 Display helpers for core terra objects.
 
 Printing and ``__repr__`` use the same formatted strings as R (``show.R``) and
-the C++ ``show()`` implementations in ``src/show.cpp`` — no duplicated layout
-logic in Python.
+the C++ ``show()`` implementations — no duplicated layout logic in Python.
+For ``SpatRaster``, ``show()`` uses ``one_based=False`` so RGB channel indices
+match Python’s 0-based convention; pass ``one_based=True`` for R-style 1-based
+indices.
 """
 
 from __future__ import annotations

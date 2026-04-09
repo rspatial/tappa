@@ -92,7 +92,7 @@ def register_methods() -> None:
         varnames, set_varnames, longnames, set_longnames,
     )
     from .time import has_time, time_info, get_time, set_time
-    from .write import write_raster
+    from .write import write_raster, update
     from .stats import row_sums, col_sums, row_means, col_means, autocor, layer_cor
     from .merge import merge as merge_rast, mosaic
     from .coerce import as_polygons, as_lines, as_points, as_array, as_matrix, as_data_frame
@@ -181,8 +181,9 @@ def register_methods() -> None:
         "has_time":       lambda self: has_time(self),
         "get_time":       lambda self: get_time(self),
         "set_time":       lambda self, v, **kw: set_time(self, v, **kw),
-        # write
+        # write / update
         "write":          lambda self, filename, **kw: write_raster(self, filename, **kw),
+        "update":         lambda self, **kw: update(self, **kw),
         # stats
         "autocor":        lambda self, **kw: autocor(self, **kw),
         "layer_cor":      lambda self, fun="cor", **kw: layer_cor(self, fun, **kw),

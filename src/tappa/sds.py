@@ -189,6 +189,7 @@ def sds(
     noflip: bool = False,
     guess_crs: bool = True,
     domains: List[str] = None,
+    md: Optional[bool] = None,
 ) -> SpatRasterDataset:
     """
     Create a :class:`SpatRasterDataset` — like R ``sds()``.
@@ -212,11 +213,20 @@ def sds(
         Try to guess CRS from file metadata.
     domains : list of str, optional
         GDAL metadata domains.
+    md : bool, optional
+        Multidimensional mode for NetCDF files.  ``True`` keeps all
+        dimensions as separate layers, ``False`` collapses them.
+        ``None`` (default) lets terra decide.
 
     Returns
     -------
     SpatRasterDataset
     """
+    if md is None:
+        md_int = 2
+    else:
+        md_int = int(md)
+
     ptr = SpatRasterStack()
 
     if x is None:
@@ -229,7 +239,7 @@ def sds(
         _opts = list(opts or [])
         _domains = list(domains or [""])
         file_ptr = SpatRasterStack(
-            x, _ids, use_ids, _opts, noflip, guess_crs, _domains
+            x, _ids, use_ids, _opts, noflip, guess_crs, _domains, md_int
         )
         return _check(file_ptr, "sds")
 

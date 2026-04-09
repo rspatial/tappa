@@ -561,10 +561,10 @@ PYBIND11_MODULE(_terra, m) {
     py::class_<SpatRaster>(m, "SpatRaster")
         .def(py::init<>())
         .def(py::init<std::vector<std::string>, std::vector<int>,
-                      std::vector<std::string>, bool,
+                      std::vector<std::string>, size_t,
                       std::vector<std::string>, std::vector<std::string>,
                       std::vector<int>, bool, bool,
-                      std::vector<std::string>>())
+                      std::vector<std::string>, size_t>())
         .def(py::init<std::vector<size_t>, std::vector<double>, std::string>())
 
         .def("has_error",   &SpatRaster::hasError)
@@ -589,7 +589,9 @@ PYBIND11_MODULE(_terra, m) {
         .def("compare_geom",    &SpatRaster::compare_geom)
         .def("couldBeLonLat",   &SpatRaster::could_be_lonlat)
         .def("deepcopy",        &SpatRaster::deepCopy)
-        .def("show",            &SpatRaster::show)
+        .def("show",
+            (std::string (SpatRaster::*)(bool)) &SpatRaster::show,
+            py::arg("one_based") = false)
         .def("hardcopy",        &SpatRaster::hardCopy)
         .def("get_crs",         &SpatRaster::getSRS)
         .def("set_crs",
@@ -703,6 +705,9 @@ PYBIND11_MODULE(_terra, m) {
         .def("writeStop",  &SpatRaster::writeStop)
         .def("writeValues",&SpatRaster::writeValues)
         .def("writeValuesRect",&SpatRaster::writeValuesRect)
+
+        .def("update_meta",   &SpatRaster::update_meta)
+        .def("update_values", &SpatRaster::update_values)
 
         .def("setRange",  &SpatRaster::setRange)
         .def_property_readonly("range_min", &SpatRaster::range_min)
@@ -947,7 +952,7 @@ PYBIND11_MODULE(_terra, m) {
         .def(py::init<>())
         .def(py::init<std::string, std::vector<int>, bool,
                       std::vector<std::string>, bool, bool,
-                      std::vector<std::string>>())
+                      std::vector<std::string>, size_t>())
         .def(py::init<SpatRaster, std::string, std::string, std::string>())
         .def("deepcopy",    &SpatRasterStack::deepCopy)
         .def("show",        &SpatRasterStack::show)

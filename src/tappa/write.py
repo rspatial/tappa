@@ -69,6 +69,81 @@ def write_raster(
     return rast(filename)
 
 
+def update(
+    x: SpatRaster,
+    *,
+    names: bool = False,
+    crs: bool = False,
+    extent: bool = False,
+    cells: Optional[List[Union[int, float]]] = None,
+    values: Optional[List[Union[int, float]]] = None,
+    layer: Union[int, List[int]] = 0,
+) -> SpatRaster:
+    """
+    Update metadata or cell values of a file-backed SpatRaster on disk.
+
+    This modifies the file directly without reading the entire raster into
+    memory.  For in-memory rasters a warning is issued and no action is taken.
+
+    Parameters
+    ----------
+    x : SpatRaster
+        Must have a file source (not in-memory).
+    names : bool
+        Update band names in the file to match *x*.
+    crs : bool
+        Update the coordinate reference system in the file to match *x*.
+    extent : bool
+        Update the geotransform / extent in the file to match *x*.
+    cells : list of int, optional
+        Cell numbers to update (1-indexed).  Must be used together with
+        *values*.
+    values : list of float, optional
+        New values for the specified *cells*.  A single value is recycled,
+        one value per cell is applied to all target layers, or
+        ``len(cells) * len(layer)`` values can be given in layer-major order.
+    layer : int or list of int
+        Layer(s) to update when writing cell values.  ``0`` (default) means
+        all layers.  Positive integers select specific layers (1-indexed).
+
+    Returns
+    -------
+    SpatRaster  (*x*, returned invisibly)
+    """
+    import numpy as np
+
+    opt = _opt()
+
+    if cells is not None or values is not None:
+        if cells is None or values is None:
+            raise ValueError("provide both 'cells' and 'values'")
+
+        cells_arr = np.asarray(cells, dtype=float)
+        vals_arr = np.asarray(values, dtype=float).ravel()
+
+        if isinstance(layer, (list, tuple, np.ndarray)):
+            layers_list = [int(l) - 1 for l in layer]
+        else:
+            layer = int(layer)
+            if layer > 0:
+                layers_list = [layer - 1]
+            else:
+                layers_list = []
+
+        cells_cpp = (cells_arr - 1).tolist()
+        vals_cpp = vals_arr.tolist()
+        layers_cpp = [int(l) for l in layers_list]
+
+        x.update_values(cells_cpp, vals_cpp, layers_cpp, opt)
+        messages(x, "update")
+
+    if names or crs or extent:
+        x.update_meta(names, crs, extent, opt)
+        messages(x, "update")
+
+    return x
+
+
 def write_start(
     x: SpatRaster,
     filename: str,
@@ -188,6 +263,7 @@ _EXT_TO_FILETYPE = {
     "kml": "KML",
     "vct": "Idrisi",
     "tab": "MapInfo File",
+    "gpx": "GPX",
 }
 
 

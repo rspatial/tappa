@@ -13,12 +13,13 @@ __all__ = ["rast"]
 def _rast_from_file(
     path: str,
     *,
-    subds: int = 0,
+    subds: Union[int, str] = 0,
     drivers: Optional[List[str]] = None,
     opts: Optional[List[str]] = None,
     noflip: bool = False,
     guess_crs: bool = True,
     domains: Optional[List[str]] = None,
+    md: Optional[bool] = None,
 ) -> SpatRaster:
     """Single-file raster using the C++ constructor (see R ``rast(character)``)."""
     f = [path]
@@ -29,9 +30,17 @@ def _rast_from_file(
     if domains is None:
         domains = []
 
-    if subds < 1:
+    if md is None:
+        md_int = 2
+    else:
+        md_int = int(md)
+
+    if isinstance(subds, str):
         subds_idx = -1
-        subname: List[str] = []
+        subname: List[str] = [subds]
+    elif subds < 1:
+        subds_idx = -1
+        subname = []
     else:
         subds_idx = subds - 1
         subname = []
@@ -40,13 +49,14 @@ def _rast_from_file(
         f,
         [subds_idx],
         subname,
-        False,
+        0,
         drivers,
         opts,
         [],
         noflip,
         guess_crs,
         domains,
+        md_int,
     )
     return messages(r, "rast")
 
@@ -54,6 +64,7 @@ def _rast_from_file(
 def rast(
     x: Any = None,
     *,
+    subds: Union[int, str] = 0,
     nrows: int = 180,
     ncols: int = 360,
     nlyrs: int = 1,
@@ -66,6 +77,7 @@ def rast(
     resolution: Optional[Union[float, Sequence[float]]] = None,
     vals: Any = None,
     names: Optional[Union[str, Sequence[str]]] = None,
+    md: Optional[bool] = None,
     **kwargs: Any,
 ) -> SpatRaster:
     """
@@ -74,7 +86,10 @@ def rast(
     **From dimensions** (no positional *x*): same defaults as R ``rast()`` for
     a global lon/lat grid when CRS is omitted.
 
-    **From a file path** (``x`` is ``str``): open with GDAL.
+    **From a file path** (``x`` is ``str``): open with GDAL.  Use *subds* to
+    select a subdataset by 1-based index or name (e.g. ``subds='t2m'``).
+    Set *md* to ``True`` or ``False`` to control multidimensional handling
+    for NetCDF files (``None`` lets terra decide).
 
     **From a list of paths** (``x`` is a list of ``str``): combine sources.
 
@@ -95,16 +110,16 @@ def rast(
 
     # --- From file path(s) ---
     if isinstance(x, str):
-        return _rast_from_file(x)
+        return _rast_from_file(x, subds=subds, md=md)
 
     if isinstance(x, (list, tuple)) and len(x) > 0 and all(isinstance(s, str) for s in x):
         paths = list(x)
         if len(paths) == 1:
-            return _rast_from_file(paths[0])
-        out = _rast_from_file(paths[0])
+            return _rast_from_file(paths[0], subds=subds, md=md)
+        out = _rast_from_file(paths[0], subds=subds, md=md)
         opt = SpatOptions()
         for i in range(1, len(paths)):
-            r2 = _rast_from_file(paths[i])
+            r2 = _rast_from_file(paths[i], subds=subds, md=md)
             out.addSource(r2, True, opt)
         return messages(out, "rast")
 

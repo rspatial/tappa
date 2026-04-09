@@ -193,7 +193,7 @@ from .rasterize import rasterize, rasterize_geom                     # noqa: F40
 from .time import has_time, time_info, get_time, set_time            # noqa: F401
 from .write import (                                                  # noqa: F401
     write_raster, write_start, write_values, write_stop, blocks,
-    write_vector,
+    write_vector, update,
 )
 from .sample import spat_sample, grid_sample                         # noqa: F401
 from .stats import (                                                  # noqa: F401
@@ -284,7 +284,7 @@ __all__ = [
     "has_time", "time_info", "get_time", "set_time",
     # write
     "write_raster", "write_start", "write_values", "write_stop", "blocks",
-    "write_vector",
+    "write_vector", "update",
     # sample
     "spat_sample", "grid_sample",
     # stats
