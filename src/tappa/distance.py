@@ -144,7 +144,7 @@ def cost_dist(
     SpatRaster
     """
     opt = spatoptions(filename, overwrite)
-    xc = x.costDistance(target, scale, max(maxiter, 2), False, opt)
+    xc = x.costDistance(target, scale, max(maxiter, 2), False, False, opt)
     return messages(xc, "costDist")
 
 
@@ -177,7 +177,7 @@ def grid_dist(
     if target is None or np.isnan(float(target)):
         xc = x.gridDistance(float(scale), opt)
     else:
-        xc = x.costDistance(float(target), float(scale), max(maxiter, 2), True, opt)
+        xc = x.costDistance(float(target), float(scale), max(maxiter, 2), True, False, opt)
     return messages(xc, "gridDist")
 
 
