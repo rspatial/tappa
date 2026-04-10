@@ -203,7 +203,12 @@ PYBIND11_MODULE(_terra, m) {
         .def(py::init<double, double, double, double>())
         .def("deepcopy",       &SpatExtent::deepCopy)
         .def("show",           &SpatExtent::show)
-        .def_property_readonly("vector",       &SpatExtent::asVector)
+        .def_property("vector",
+            &SpatExtent::asVector,
+            [](SpatExtent &self, std::vector<double> v) {
+                if (v.size() != 4) throw std::runtime_error("vector must have 4 elements (xmin, xmax, ymin, ymax)");
+                self.xmin = v[0]; self.xmax = v[1]; self.ymin = v[2]; self.ymax = v[3];
+            })
         .def_property_readonly("valid",        &SpatExtent::valid)
         .def_property_readonly("valid_notempty",&SpatExtent::valid_notempty)
         .def_property_readonly("empty",        &SpatExtent::empty)

@@ -31,9 +31,10 @@ def xy_point():
     return np.array([[-52.67, 4.08]])
 
 
-# ── md=False (default), single subds (t2m) ───────────────────────────────────
+# ── default md, single subds (t2m) ───────────────────────────────────────────
 
-class TestMdFalseSingleSubds:
+class TestDefaultSingleSubds:
+    """rast(f, subds='t2m') — default md (auto-detect, md=None → C++ 2)."""
 
     def test_nlyr(self, nc_path):
         r = rast(nc_path, subds="t2m")
@@ -95,17 +96,18 @@ class TestMdTrueSingleSubds:
         np.testing.assert_allclose(float(val), 297.0172, atol=1e-3)
 
 
-# ── md=True vs md=False equivalence ──────────────────────────────────────────
+# ── md=True vs default equivalence (single subds) ────────────────────────────
 
 class TestMdEquivalence:
+    """For a single subds, default and md=True must give identical results."""
 
     def test_values_equal(self, nc_path):
-        r1 = rast(nc_path, subds="t2m", md=False)
+        r1 = rast(nc_path, subds="t2m")
         r2 = rast(nc_path, subds="t2m", md=True)
         np.testing.assert_array_equal(values(r1), values(r2))
 
     def test_extract_equal(self, nc_path, xy_point):
-        r1 = rast(nc_path, subds="t2m", md=False)
+        r1 = rast(nc_path, subds="t2m")
         r2 = rast(nc_path, subds="t2m", md=True)
         e1 = extract(r1, xy_point)
         e2 = extract(r2, xy_point)
@@ -115,9 +117,10 @@ class TestMdEquivalence:
         )
 
 
-# ── md=False, all vars (no subds) ────────────────────────────────────────────
+# ── default md, all vars (no subds) ──────────────────────────────────────────
 
-class TestMdFalseAllVars:
+class TestDefaultAllVars:
+    """rast(f) — all variables, default md."""
 
     def test_nlyr(self, nc_path):
         r = rast(nc_path)
@@ -144,27 +147,81 @@ class TestMdFalseAllVars:
         assert e.shape[1] == 336 or e.shape[1] == 337  # 336 + optional ID
 
 
-# ── md=True, all vars ────────────────────────────────────────────────────────
+# ── md=True, all vars — equivalence with default ────────────────────────────
 
 class TestMdTrueAllVars:
+    """md=True must give identical results to default for all vars."""
 
     def test_nlyr(self, nc_path):
         r = rast(nc_path, md=True)
         assert r.nlyr() == 336
 
-    def test_values_match_md_false(self, nc_path):
-        r1 = rast(nc_path, md=False)
+    def test_values_match_default(self, nc_path):
+        r1 = rast(nc_path)
         r2 = rast(nc_path, md=True)
         np.testing.assert_array_equal(values(r1), values(r2))
 
-    def test_extract_match_md_false(self, nc_path, xy_point):
-        r1 = rast(nc_path, md=False)
+    def test_extract_match_default(self, nc_path, xy_point):
+        r1 = rast(nc_path)
         r2 = rast(nc_path, md=True)
         e1 = extract(r1, xy_point)
         e2 = extract(r2, xy_point)
         np.testing.assert_array_equal(
             e1.select_dtypes(include="number").values,
             e2.select_dtypes(include="number").values,
+        )
+
+
+# ── md=False vs md=True: same values after aligning by layer name ────────────
+
+def _align_values_by_name(r_from, r_to):
+    """Subset and reorder values of *r_from* to match layer names of *r_to*.
+
+    Drops layers from *r_from* whose names are not in *r_to* (e.g.
+    NaN-filled ``expver`` layers that md=False introduces).
+    """
+    names_from = list(r_from.names)
+    names_to = list(r_to.names)
+    idx = [names_from.index(n) for n in names_to]
+    return values(r_from)[:, idx]
+
+
+class TestMdFalseVsTrueByName:
+    """md=False may add extra NaN layers, but values for shared layer names
+    must be identical to md=True."""
+
+    def test_single_subds_values(self, nc_path):
+        r0 = rast(nc_path, subds="t2m", md=False)
+        r1 = rast(nc_path, subds="t2m", md=True)
+        v0_aligned = _align_values_by_name(r0, r1)
+        np.testing.assert_allclose(v0_aligned, values(r1), atol=1e-6)
+
+    def test_single_subds_extract(self, nc_path, xy_point):
+        r0 = rast(nc_path, subds="t2m", md=False)
+        r1 = rast(nc_path, subds="t2m", md=True)
+        e0 = extract(r0, xy_point)
+        e1 = extract(r1, xy_point)
+        np.testing.assert_allclose(
+            e0[list(e1.columns)].values.astype(float),
+            e1.values.astype(float),
+            atol=1e-6,
+        )
+
+    def test_all_vars_values(self, nc_path):
+        r0 = rast(nc_path, md=False)
+        r1 = rast(nc_path, md=True)
+        v0_aligned = _align_values_by_name(r0, r1)
+        np.testing.assert_allclose(v0_aligned, values(r1), atol=1e-6)
+
+    def test_all_vars_extract(self, nc_path, xy_point):
+        r0 = rast(nc_path, md=False)
+        r1 = rast(nc_path, md=True)
+        e0 = extract(r0, xy_point)
+        e1 = extract(r1, xy_point)
+        np.testing.assert_allclose(
+            e0[list(e1.columns)].values.astype(float),
+            e1.values.astype(float),
+            atol=1e-6,
         )
 
 
