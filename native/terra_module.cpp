@@ -463,7 +463,13 @@ PYBIND11_MODULE(_terra, m) {
             &SpatVector::set_names)
         .def("nrow",         &SpatVector::nrow)
         .def("ncol",         &SpatVector::ncol)
-        .def("project",      &SpatVector::project)
+        .def("project", &SpatVector::project,
+            py::arg("crs"), py::arg("partial"),
+            py::arg("pipeline") = std::string(""),
+            py::arg("AOI") = std::vector<double>(),
+            py::arg("desired_accuracy") = -1.0,
+            py::arg("allow_ballpark") = true)
+        .def("get_proj_pipelines", &SpatVector::get_proj_pipelines)
         .def("project_xy",   &SpatVector::project_xy)
         .def("read",         &SpatVector::read)
         .def("setGeometry",  &SpatVector::setGeometry)
@@ -904,8 +910,8 @@ PYBIND11_MODULE(_terra, m) {
         .def("fillNA",       &SpatRaster::fillNA)
         .def("rectify",      &SpatRaster::rectify)
         .def("stretch",      &SpatRaster::stretch)
-        .def("warp",         &SpatRaster::warper)
-        .def("warp_by_util", &SpatRaster::warper_by_util)
+        .def("warp", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, SpatOptions&))(&SpatRaster::warper))
+        .def("warp_by_util", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, SpatOptions&))(&SpatRaster::warper_by_util))
         .def("resample",     &SpatRaster::resample)
         .def("zonal",        &SpatRaster::zonal)
         .def("zonal_weighted",&SpatRaster::zonal_weighted)

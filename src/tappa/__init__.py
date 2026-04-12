@@ -64,7 +64,7 @@ from ._terra import (  # noqa: F401
 )
 
 from ._helpers import character_crs, messages                        # noqa: F401
-from .crs import crs                                                  # noqa: F401
+from .crs import crs, proj_pipelines                                   # noqa: F401
 from .show import repr_extent, repr_raster, repr_vector, show, register_reprs  # noqa: F401
 register_reprs()  # attach __repr__ / __str__ to C++ types
 from .extent import ext                                               # noqa: F401
@@ -222,7 +222,7 @@ __version__ = "0.1.0"
 
 __all__ = [
     # High-level API (R-like)
-    "rast", "vect", "ext", "crs",
+    "rast", "vect", "ext", "crs", "proj_pipelines",
     "register_methods",
     "plot", "plot_rgb",
     "messages", "character_crs",

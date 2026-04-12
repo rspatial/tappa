@@ -36,6 +36,7 @@ _cpp = {
     "rast.flip":       SpatRaster.flip,
     "rast.rotate":     SpatRaster.rotate,
     "rast.shift":      SpatRaster.shift,
+    "vect.project":    SpatVector.project,
 }
 
 __all__ = [
@@ -782,6 +783,11 @@ def project_raster(
     method: str = "bilinear",
     mask: bool = False,
     align_only: bool = False,
+    pipeline: str = "",
+    AOI: Optional[List[float]] = None,
+    desired_accuracy: float = -1.0,
+    allow_ballpark: bool = True,
+    by_util: bool = False,
     filename: str = "",
     **kw: Any,
 ) -> SpatRaster:
@@ -789,12 +795,33 @@ def project_raster(
     Reproject a raster — like R ``project()`` on SpatRaster.
 
     *y* is either a target :class:`SpatRaster` (geometry template) or a CRS string.
+
+    Parameters
+    ----------
+    pipeline : str
+        A PROJ pipeline string for the transformation.
+        Forces *by_util=True* automatically.
+    AOI : list of float, optional
+        Area of interest ``[west, south, east, north]`` in degrees.
+    desired_accuracy : float
+        Minimum accuracy in metres (``-1`` = no constraint, requires GDAL >= 3.3).
+    allow_ballpark : bool
+        If ``False``, reject approximate transformations (requires GDAL >= 3.3).
+    by_util : bool
+        Use GDALWarp utility instead of the custom chunked warper.
     """
     opt = _opt(filename, **kw)
+    aoi = list(AOI) if AOI is not None else []
+
+    if pipeline:
+        by_util = True
+
+    warp = x.warp_by_util if by_util else x.warp
+
     if isinstance(y, SpatRaster):
-        x = x.warp(y, "", method, mask, align_only, False, opt)
+        x = warp(y, "", method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, opt)
     else:
-        x = x.warp(SpatRaster(), str(y), method, mask, align_only, False, opt)
+        x = warp(SpatRaster(), str(y), method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, opt)
     return messages(x, "project")
 
 
@@ -824,14 +851,31 @@ def project_vector(
     x: SpatVector,
     y: Union[SpatRaster, SpatVector, str],
     partial: bool = False,
+    pipeline: str = "",
+    AOI: Optional[List[float]] = None,
+    desired_accuracy: float = -1.0,
+    allow_ballpark: bool = True,
 ) -> SpatVector:
-    """Reproject a vector — like R ``project()`` on SpatVector."""
+    """Reproject a vector — like R ``project()`` on SpatVector.
+
+    Parameters
+    ----------
+    pipeline : str
+        A PROJ pipeline string for the transformation.
+    AOI : list of float, optional
+        Area of interest ``[west, south, east, north]`` in degrees.
+    desired_accuracy : float
+        Minimum accuracy in metres (``-1`` = no constraint, requires GDAL >= 3.3).
+    allow_ballpark : bool
+        If ``False``, reject approximate transformations (requires GDAL >= 3.3).
+    """
     if not isinstance(y, str):
         if hasattr(y, "get_crs"):
             y = y.get_crs("wkt")
         else:
             y = str(y)
-    x = x.project(y, partial)
+    aoi = list(AOI) if AOI is not None else []
+    x = _cpp["vect.project"](x, y, partial, pipeline, aoi, desired_accuracy, allow_ballpark)
     return messages(x, "project")
 
 
