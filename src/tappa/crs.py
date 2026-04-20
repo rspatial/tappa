@@ -83,13 +83,4 @@ def proj_pipelines(
     )
     messages(v, "proj_pipelines")
 
-    df = _getSpatDF(sdf)
-    if df is not None and len(df) > 0 and "definition" in df.columns:
-        def _fix_def(s: str) -> str:
-            words = s.split()
-            words = [w for w in words if w]
-            words = [w if w.startswith("+") else "+" + w for w in words]
-            return " ".join(words)
-        df["definition"] = df["definition"].apply(_fix_def)
-
-    return df
+    return _getSpatDF(sdf)

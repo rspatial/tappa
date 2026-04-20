@@ -819,9 +819,9 @@ def project_raster(
     warp = x.warp_by_util if by_util else x.warp
 
     if isinstance(y, SpatRaster):
-        x = warp(y, "", method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, opt)
+        x = warp(y, "", method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, 0.0, 0.0, opt)
     else:
-        x = warp(SpatRaster(), str(y), method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, opt)
+        x = warp(SpatRaster(), str(y), method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, 0.0, 0.0, opt)
     return messages(x, "project")
 
 
@@ -834,7 +834,7 @@ def resample(
 ) -> SpatRaster:
     """Resample to match *y* — like R ``resample()``."""
     opt = _opt(filename, **kw)
-    x = x.warp(y, "", method, False, False, True, opt)
+    x = x.warp(y, "", method, False, False, True, "", [], -1.0, True, 0.0, 0.0, opt)
     return messages(x, "resample")
 
 

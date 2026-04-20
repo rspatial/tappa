@@ -14,6 +14,7 @@
 #include <memory>
 #include "NA.h"
 #include "spatTime.h"
+#include "crs.h"
 
 // GDAL headers for module-level initialisation
 #include "gdal_priv.h"
@@ -469,7 +470,16 @@ PYBIND11_MODULE(_terra, m) {
             py::arg("AOI") = std::vector<double>(),
             py::arg("desired_accuracy") = -1.0,
             py::arg("allow_ballpark") = true)
-        .def("get_proj_pipelines", &SpatVector::get_proj_pipelines)
+        .def("get_proj_pipelines",
+            [](SpatVector&, std::string source, std::string target,
+               std::string authority, std::vector<double> AOI,
+               std::string use, std::string grid_availability,
+               double desired_accuracy, bool strict_containment,
+               bool axis_order_authority_compliant) {
+                return get_proj_pipelines(source, target, authority, AOI, use,
+                    grid_availability, desired_accuracy, strict_containment,
+                    axis_order_authority_compliant);
+            })
         .def("project_xy",   &SpatVector::project_xy)
         .def("read",         &SpatVector::read)
         .def("setGeometry",  &SpatVector::setGeometry)
@@ -557,6 +567,11 @@ PYBIND11_MODULE(_terra, m) {
         .def("densify",      &SpatVector::densify)
         .def("round",        &SpatVector::round)
         .def("make_CCW",     &SpatVector::make_CCW)
+
+        .def("hexagons",         &SpatVector::hexagons)
+        .def("hexagons_lonlat",  &SpatVector::hexagons_lonlat)
+        .def("rectangles_lonlat",&SpatVector::rectangles_lonlat)
+        .def("polyhedron",       &SpatVector::polyhedron)
     ;
 
 
@@ -910,8 +925,8 @@ PYBIND11_MODULE(_terra, m) {
         .def("fillNA",       &SpatRaster::fillNA)
         .def("rectify",      &SpatRaster::rectify)
         .def("stretch",      &SpatRaster::stretch)
-        .def("warp", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, SpatOptions&))(&SpatRaster::warper))
-        .def("warp_by_util", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, SpatOptions&))(&SpatRaster::warper_by_util))
+        .def("warp", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, double, double, SpatOptions&))(&SpatRaster::warper))
+        .def("warp_by_util", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, double, double, SpatOptions&))(&SpatRaster::warper_by_util))
         .def("resample",     &SpatRaster::resample)
         .def("zonal",        &SpatRaster::zonal)
         .def("zonal_weighted",&SpatRaster::zonal_weighted)

@@ -217,6 +217,7 @@ from .spatvec import (                                                # noqa: F4
 )
 from .sds import SpatRasterDataset, sds                              # noqa: F401
 from .sprc import SprcCollection, sprc                               # noqa: F401
+from .tessellate import tessellate                                   # noqa: F401
 
 __version__ = "0.1.0"
 
@@ -361,5 +362,7 @@ __all__ = [
     # sds / sprc
     "SpatRasterDataset", "sds",
     "SprcCollection", "sprc",
+    # tessellate
+    "tessellate",
     "__version__",
 ]
