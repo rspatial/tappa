@@ -8,7 +8,7 @@ import numpy as np
 from ._terra import SpatRaster, SpatOptions
 from ._helpers import messages, spatoptions
 
-_cpp_focal = SpatRaster.focal  # captured before monkey-patching
+_cpp_focal2 = SpatRaster.focal2  # captured before monkey-patching
 
 
 def _opt() -> SpatOptions:
@@ -184,7 +184,7 @@ def focal(
     if txt in _FOCAL_FUNS:
         opt = spatoptions(filename, overwrite)
         narm, naonly, naomit = _na_policy_to_cpp(na_policy, na_rm)
-        xc = _cpp_focal(
+        xc = _cpp_focal2(
             x, wmat, wvals, fillvalue, narm, naonly, naomit, txt, expand, opt
         )
         return messages(xc, "focal")

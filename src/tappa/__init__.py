@@ -218,6 +218,7 @@ from .spatvec import (                                                # noqa: F4
 from .sds import SpatRasterDataset, sds                              # noqa: F401
 from .sprc import SprcCollection, sprc                               # noqa: F401
 from .tessellate import tessellate                                   # noqa: F401
+from .tile_apply import tile_apply, get_tile_extents, make_tiles    # noqa: F401
 
 __version__ = "0.1.0"
 
@@ -364,5 +365,7 @@ __all__ = [
     "SprcCollection", "sprc",
     # tessellate
     "tessellate",
+    # tile_apply
+    "tile_apply", "get_tile_extents", "make_tiles",
     "__version__",
 ]

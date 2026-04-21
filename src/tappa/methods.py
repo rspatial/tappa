@@ -97,6 +97,7 @@ def register_methods() -> None:
     from .merge import merge as merge_rast, mosaic
     from .coerce import as_polygons, as_lines, as_points, as_array, as_matrix, as_data_frame
     from .plot import plot, plot_rgb
+    from .tile_apply import tile_apply, get_tile_extents, make_tiles
 
     _rast_methods = {
         # extent (R-style; backed by SpatExtent.vector = xmin, xmax, ymin, ymax)
@@ -208,6 +209,10 @@ def register_methods() -> None:
         # plot
         "plot":           lambda self, **kw: plot(self, **kw),
         "plot_rgb":       lambda self, **kw: plot_rgb(self, **kw),
+        # tiles
+        "tile_apply":      lambda self, fun, cores=1, **kw: tile_apply(self, fun, cores, **kw),
+        "get_tile_extents": lambda self, y=None, **kw: get_tile_extents(self, y, **kw),
+        "make_tiles":      lambda self, y, **kw: make_tiles(self, y, **kw),
     }
 
     # Methods to always register (Python wrappers that supersede the C++ raw method).
@@ -217,6 +222,7 @@ def register_methods() -> None:
         "merge", "mosaic", "write", "plot", "plot_rgb",
         "levels", "cats", "is_factor", "as_factor",
         "is_na", "not_na", "sum", "mean", "min", "max",
+        "make_tiles", "get_tile_extents",
     }
     for name, fn in _rast_methods.items():
         if name in _rast_force or not hasattr(SpatRaster, name):

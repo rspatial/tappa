@@ -846,6 +846,7 @@ PYBIND11_MODULE(_terra, m) {
 
         .def("flip",         &SpatRaster::flip)
         .def("focal",        &SpatRaster::focal)
+        .def("focal2",       &SpatRaster::focal2)
         .def("focalValues",  &SpatRaster::focal_values)
         .def("count",        &SpatRaster::count)
         .def("freq",         &SpatRaster::freq)
