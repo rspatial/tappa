@@ -10,7 +10,7 @@
 #include <stdexcept>
 
 #include "spatRasterMultiple.h"
-#include "spatGraph.h"
+#include "spatNetwork.h"
 #include <memory>
 #include "NA.h"
 #include "spatTime.h"
