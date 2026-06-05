@@ -19,6 +19,14 @@ dependencies = [
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.4"]
+docs = [
+    "sphinx>=7.2",
+    "furo>=2024.1",
+    "myst-parser>=2.0",
+    "sphinx-copybutton>=0.5",
+    "sphinx-design>=0.5",
+    "linkify-it-py>=2.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/rspatial/tappa"
