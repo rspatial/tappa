@@ -1,8 +1,8 @@
 # User guide
 
 The user guide is a work in progress. Topic pages will be added as the API
-stabilises. Until then, the {doc}`getting-started` page and the
-{doc}`../api/index` are the best entry points.
+stabilises. Until then, the [Getting started](../getting-started.md) page and
+the [API reference](../api/index.md) are the best entry points.
 
 ## Topics
 

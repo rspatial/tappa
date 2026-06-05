@@ -104,10 +104,3 @@ also reachable directly (e.g. `tappa.geom.buffer_vect`).
    tappa.write
    tappa.zonal
 ```
-
-```{toctree}
-:hidden:
-:glob:
-
-_autosummary/*
-```

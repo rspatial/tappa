@@ -60,13 +60,25 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 3
 
-# Napoleon: NumPy-style docstrings (matches the style used in src/tappa/*.py).
-napoleon_google_docstring = False
+# Napoleon: tappa uses a mix of NumPy-style (Parameters / ----------) and
+# Google-style (Args:) docstrings. Enable both so neither gets rendered as
+# raw reST.
+napoleon_google_docstring = True
 napoleon_numpy_docstring = True
 napoleon_use_param = True
 napoleon_use_rtype = True
 napoleon_preprocess_types = True
 napoleon_attr_annotations = True
+
+# Sphinx 9.1's autosummary "import_cycle" warning fires for every entry of a
+# `:recursive:` autosummary because the generated stubs reference the parent
+# module name. The warning is non-actionable with the recursive template; the
+# generated pages render correctly. See sphinx-doc/sphinx#13159 (and the PR
+# that turned the message into a warning in 9.1). We silence it here so the
+# CI can keep -W enabled and still catch new, real warnings.
+suppress_warnings = [
+    "autosummary.import_cycle",
+]
 
 # Autosummary creates stub pages for everything we list in the API page.
 autosummary_generate = True
