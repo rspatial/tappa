@@ -93,6 +93,10 @@ def rast(
 
     **From a list of paths** (``x`` is a list of ``str``): combine sources.
 
+    **From a list of SpatRasters** (or a mix of paths and SpatRasters):
+    stack the inputs into a single multi-source SpatRaster, mirroring
+    R ``c(r1, r2, r3)``. All inputs must share the same geometry.
+
     **From** :class:`SpatRaster`: return ``deepcopy``.
 
     **From** :class:`SpatExtent`: use extent as bounding box for a new empty raster.
@@ -112,15 +116,25 @@ def rast(
     if isinstance(x, str):
         return _rast_from_file(x, subds=subds, md=md)
 
-    if isinstance(x, (list, tuple)) and len(x) > 0 and all(isinstance(s, str) for s in x):
-        paths = list(x)
-        if len(paths) == 1:
-            return _rast_from_file(paths[0], subds=subds, md=md)
-        out = _rast_from_file(paths[0], subds=subds, md=md)
+    if isinstance(x, (list, tuple)) and len(x) > 0 and all(
+        isinstance(s, (str, SpatRaster)) for s in x
+    ):
+        items = list(x)
+        if len(items) == 1:
+            it = items[0]
+            return (_rast_from_file(it, subds=subds, md=md)
+                    if isinstance(it, str)
+                    else messages(it.deepcopy(), "rast"))
+
+        def _to_raster(it: Union[str, SpatRaster]) -> SpatRaster:
+            if isinstance(it, str):
+                return _rast_from_file(it, subds=subds, md=md)
+            return it.deepcopy()
+
+        out = _to_raster(items[0])
         opt = SpatOptions()
-        for i in range(1, len(paths)):
-            r2 = _rast_from_file(paths[i], subds=subds, md=md)
-            out.addSource(r2, True, opt)
+        for i in range(1, len(items)):
+            out.addSource(_to_raster(items[i]), True, opt)
         return messages(out, "rast")
 
     # --- SpatExtent ---

@@ -133,8 +133,18 @@ def disagg(
         fact = [int(fact[0]), int(fact[0])]
     else:
         fact = [int(fact[0]), int(fact[1])]
+    if method not in ("near", "bilinear"):
+        raise ValueError("disagg: method must be 'near' or 'bilinear'")
+    if method != "near":
+        # The current C++ binding only exposes nearest-neighbour disaggregation;
+        # warn rather than silently downgrade.
+        import warnings
+        warnings.warn(
+            "disagg: only method='near' is wired through; ignoring method=" + repr(method),
+            stacklevel=2,
+        )
     opt = spatoptions(filename, overwrite)
-    xc = x.disaggregate(fact, method, opt)
+    xc = x.disaggregate(fact, opt)
     return messages(xc, "disagg")
 
 
@@ -163,9 +173,26 @@ def aggregate_vect(
     SpatVector
     """
     if by is None:
-        by = []
+        by_str = ""
     elif isinstance(by, str):
-        by = [by]
-    opt = spatoptions()
-    xc = _cpp_vect_aggregate(x, by, dissolve, opt)
+        by_str = by
+    else:
+        by_list = list(by)
+        if len(by_list) == 0:
+            by_str = ""
+        elif len(by_list) == 1:
+            by_str = str(by_list[0])
+        else:
+            raise NotImplementedError(
+                "aggregate_vect: aggregating by multiple columns is not yet "
+                "supported (the C++ binding takes a single column name)"
+            )
+
+    if not by_str:
+        # No grouping column: dissolve every feature into one (R: aggregate(v)).
+        # The C++ side has a dedicated entry point for this case.
+        out = x.aggregate_nofield(bool(dissolve))
+        return messages(out, "aggregate_vect")
+
+    xc = _cpp_vect_aggregate(x, by_str, bool(dissolve))
     return messages(xc, "aggregate_vect")

@@ -134,6 +134,9 @@ def subset_vect(
     x: SpatVector,
     subset: Optional[Union[List[bool], List[int], np.ndarray]] = None,
     select: Optional[Union[str, List[str]]] = None,
+    *,
+    rows: Optional[Union[List[bool], List[int], np.ndarray]] = None,
+    cols: Optional[Union[str, List[str]]] = None,
 ) -> SpatVector:
     """
     Select features and/or columns from a SpatVector.
@@ -145,14 +148,23 @@ def subset_vect(
     x : SpatVector
     subset : list of bool or int, optional
         Row indices (0-based) or boolean mask selecting features.
+        ``rows`` is accepted as an alias.
     select : str or list of str, optional
-        Column names to keep.
+        Column names to keep. ``cols`` is accepted as an alias.
 
     Returns
     -------
     SpatVector
     """
-    # Row subsetting
+    if rows is not None:
+        if subset is not None:
+            raise TypeError("subset_vect: pass either 'subset' or 'rows', not both")
+        subset = rows
+    if cols is not None:
+        if select is not None:
+            raise TypeError("subset_vect: pass either 'select' or 'cols', not both")
+        select = cols
+
     if subset is None:
         row_idx = list(range(x.nrow()))
     else:
@@ -161,12 +173,10 @@ def subset_vect(
         if len(subset) > 0 and isinstance(subset[0], (bool, np.bool_)):
             row_idx = [i for i, v in enumerate(subset) if v]
         else:
-            pos = _normalize_indices_0based(list(subset), x.nrow(), what="row")
-            row_idx = pos
+            row_idx = _normalize_indices_0based(list(subset), x.nrow(), what="row")
 
-    xc = x.subset(row_idx, _opt())
+    xc = x.subset_rows(row_idx)
 
-    # Column subsetting
     if select is not None:
         if isinstance(select, str):
             select = [select]
@@ -176,7 +186,7 @@ def subset_vect(
             if col not in all_cols:
                 raise ValueError(f"column {col!r} not found")
             keep_idx.append(all_cols.index(col))
-        xc = xc.selectRange(keep_idx)
+        xc = xc.subset_cols(keep_idx)
 
     return messages(xc, "subset_vect")
 

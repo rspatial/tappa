@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any, Optional
 
 from ._helpers import messages
-from ._terra import SpatExtent
+from ._terra import SpatExtent, SpatRaster, SpatVector
 
 __all__ = ["ext", "intersect_ext"]
 
@@ -20,6 +20,8 @@ def ext(
     * ``ext()`` — empty extent object.
     * ``ext(xmin, xmax, ymin, ymax)`` — four numbers.
     * ``ext(SpatExtent)`` — deep copy.
+    * ``ext(SpatRaster | SpatVector)`` — bounding box of a Spat* object,
+      mirroring R ``terra::ext(x)``.
     * ``ext([xmin, xmax, ymin, ymax])`` — length-4 sequence.
     * With **numpy**, a 2-column coordinate matrix uses column-wise min/max.
     """
@@ -31,6 +33,12 @@ def ext(
         a = args[0]
         if isinstance(a, SpatExtent):
             return messages(a.deepcopy(), "ext")
+
+        if isinstance(a, SpatRaster):
+            return messages(a.extent.deepcopy(), "ext")
+
+        if isinstance(a, SpatVector):
+            return messages(a.extent().deepcopy(), "ext")
 
         try:
             import numpy as np  # type: ignore

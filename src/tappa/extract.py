@@ -44,7 +44,7 @@ def _flat_extract_to_dataframe(
 
 
 def extract(
-    x: SpatRaster,
+    x: Union[SpatRaster, SpatVector],
     y: Union[SpatVector, "np.ndarray", "pd.DataFrame", List],
     *,
     method: str = "simple",
@@ -116,12 +116,37 @@ def extract(
         import pandas as pd
     except ImportError:
         raise ImportError("pandas is required for extract()")
+    import numpy as np
     from ._helpers import _getSpatDF
 
     # Coerce y to SpatVector if needed
     if not isinstance(y, SpatVector):
         from .vect import vect
         y = vect(y)
+
+    # SpatVector × SpatVector: spatial join. For each feature in *y*, return
+    # the attributes of *x* whose geometry contains it (point-in-polygon, etc).
+    if isinstance(x, SpatVector):
+        # Use the C++ relate matrix to find which x-feature each y intersects.
+        from .relate import relate as _relate
+        rel = np.asarray(_relate(x, y, "intersects"), dtype=bool)
+        # rel has shape (nrow_x, nrow_y); for each y find the first matching x.
+        ny = y.nrow()
+        x_df = _getSpatDF(x.df)
+        if x_df is None:
+            x_df = pd.DataFrame()
+        rows = []
+        for j in range(ny):
+            hits = np.flatnonzero(rel[:, j])
+            if hits.size == 0:
+                row = {col: np.nan for col in x_df.columns}
+            else:
+                row = x_df.iloc[int(hits[0])].to_dict() if not x_df.empty else {}
+            rows.append(row)
+        out = pd.DataFrame(rows, columns=list(x_df.columns))
+        if ID:
+            out.insert(0, "id.y", np.arange(1, ny + 1, dtype=int))
+        return out
 
     opt = spatoptions(filename, overwrite)
 

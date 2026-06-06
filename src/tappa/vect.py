@@ -35,6 +35,40 @@ def _vect_xy_matrix(x: Any, crs: str) -> SpatVector:
     return messages(v, "vect")
 
 
+def _vect_geom_matrix(x: Any, geom_type: str, crs: str) -> SpatVector:
+    """Build a SpatVector of lines or polygons from a ``[id, part, x, y(, hole)]``
+    matrix — analogue of R ``terra::vect(matrix, type=...)``.
+
+    Hole flags default to 0. The first three columns are coerced to int /
+    float as appropriate.
+    """
+    import numpy as np
+
+    arr = np.asarray(x, dtype=float)
+    if arr.ndim != 2 or arr.shape[1] not in (4, 5):
+        raise ValueError(
+            "vect: lines/polygons matrix must have 4 columns (id, part, x, y) "
+            "or 5 columns (id, part, x, y, hole)"
+        )
+    if geom_type not in ("lines", "polygons"):
+        raise ValueError("vect: type must be 'lines' or 'polygons'")
+
+    ids = arr[:, 0].astype(int).tolist()
+    parts = arr[:, 1].astype(int).tolist()
+    xs = arr[:, 2].tolist()
+    ys = arr[:, 3].tolist()
+    if arr.shape[1] == 5:
+        holes = [bool(h) for h in arr[:, 4]]
+    else:
+        holes = [False] * arr.shape[0]
+
+    v = SpatVector()
+    if crs:
+        v.set_crs(character_crs(crs, "vect"))
+    v.setGeometry(geom_type, ids, parts, xs, ys, holes)
+    return messages(v, "vect")
+
+
 def _normalize_path(path: str) -> str:
     p = path.strip()
     if p.startswith("http") and (p.endswith(".shp") or p.endswith(".gpkg")):
@@ -52,6 +86,7 @@ def _normalize_path(path: str) -> str:
 def vect(
     x: Any = None,
     *,
+    type: Optional[str] = None,
     layer: str = "",
     query: str = "",
     crs: str = "",
@@ -65,6 +100,9 @@ def vect(
     * ``vect(SpatExtent)`` — rectangle as polygon (use **crs**).
     * ``list[str]`` — multiple WKT geometries.
     * A coordinate matrix *(n, 2)* — same as R ``vect(matrix)`` via ``setPointsXY``.
+    * A geometry matrix *(n, 4)* with columns ``[id, part, x, y]`` (or
+      *(n, 5)* with a trailing ``hole`` flag) plus ``type='lines'`` or
+      ``type='polygons'`` — same as R ``vect(matrix, type=...)``.
 
     Extra GDAL arguments (``layer``, ``query``, …) match the C++ ``read`` call
     where applicable; see R ``terra::vect`` for full options (not all are wired yet).
@@ -112,9 +150,18 @@ def vect(
         np = None  # type: ignore
     if np is not None and isinstance(x, np.ndarray):
         if x.ndim == 2 and x.shape[1] == 2:
+            if type is not None and type not in ("points", None):
+                raise ValueError(
+                    f"vect: type={type!r} requires 4 columns [id, part, x, y]"
+                )
             return _vect_xy_matrix(x, crs)
+        if x.ndim == 2 and x.shape[1] in (4, 5):
+            gt = (type or "points").lower()
+            if gt in ("lines", "polygons"):
+                return _vect_geom_matrix(x, gt, crs)
         raise TypeError(
-            "vect: ndarray must have shape (n, 2) with columns [x, y]"
+            "vect: ndarray must be (n, 2) for points, or (n, 4)/(n, 5) "
+            "with type='lines'/'polygons'"
         )
 
     if (

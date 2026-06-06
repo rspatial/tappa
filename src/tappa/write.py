@@ -282,7 +282,7 @@ def write_vector(
     layer: Optional[str] = None,
     insert: bool = False,
     overwrite: bool = False,
-    options: str = "ENCODING=UTF-8",
+    options: Union[str, List[str]] = "ENCODING=UTF-8",
 ) -> bool:
     """
     Write a SpatVector to a file.
@@ -324,6 +324,11 @@ def write_vector(
             xc.names = truncated
             x = xc
 
-    ok = _cpp_vect_write(x, filename, layer, filetype, insert, overwrite, options)
+    if isinstance(options, str):
+        opts_seq: List[str] = [options] if options else []
+    else:
+        opts_seq = [str(o) for o in options]
+
+    ok = _cpp_vect_write(x, filename, layer, filetype, insert, overwrite, opts_seq)
     messages(x, "writeVector")
     return bool(ok)

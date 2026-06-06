@@ -18,7 +18,7 @@ erase).
 
 from __future__ import annotations
 
-from typing import Any, List, Union
+from typing import Any, List, Optional, Sequence, Union
 
 from ._helpers import messages
 from ._terra import SpatExtent, SpatOptions, SpatRaster, SpatVector
@@ -390,14 +390,80 @@ def count_na(x: SpatRaster, n: int = 0) -> SpatRaster:
 # ── Summary / reduction ──────────────────────────────────────────────────────
 
 def _summarize(x: SpatRaster, fun: str, na_rm: bool = False,
-               *extra: float, filename: str = "", **kw: Any) -> SpatRaster:
+               *extra: Any, filename: str = "", **kw: Any) -> SpatRaster:
     from .generics import _opt as _g_opt
     opt = _g_opt(filename, **kw)
-    if extra:
-        r = x.summary_numb(fun, list(extra), na_rm, opt)
+
+    # Mirror R terra: extra args can mix SpatRasters and scalars. SpatRasters
+    # are stacked onto x via addSource; scalars are fed to summary_numb.
+    rasters: list = []
+    nums: list = []
+    for e in extra:
+        if isinstance(e, SpatRaster):
+            rasters.append(e)
+        else:
+            nums.append(float(e))
+
+    if rasters:
+        stack = x.deepcopy()
+        addopt = SpatOptions()
+        for s in rasters:
+            stack.addSource(s.deepcopy(), True, addopt)
+        x = stack
+
+    if nums:
+        r = x.summary_numb(fun, nums, na_rm, opt)
     else:
         r = x.summary(fun, na_rm, opt)
     return messages(r, fun)
+
+
+def global_(
+    x: SpatRaster,
+    fun: Union[str, Sequence[str]] = "mean",
+    na_rm: bool = False,
+    *,
+    weights: Optional[SpatRaster] = None,
+) -> "pd.DataFrame":
+    """
+    Per-layer summary across all cells, like R ``terra::global(x, fun)``.
+
+    Parameters
+    ----------
+    x : SpatRaster
+    fun : str or sequence of str
+        One or more of ``"mean"``, ``"sum"``, ``"min"``, ``"max"``, ``"sd"``,
+        ``"std"``, ``"prod"``, ``"isNA"``, ``"notNA"``.
+    na_rm : bool
+        If True, NA cells are dropped before reducing.
+    weights : SpatRaster, optional
+        Per-cell weights (currently only honoured for ``fun="mean"``).
+
+    Returns
+    -------
+    pandas.DataFrame
+        One row per layer of *x*; one column per *fun*.
+    """
+    from ._helpers import _getSpatDF
+    if isinstance(fun, str):
+        funs = [fun]
+    else:
+        funs = list(fun)
+    opt = SpatOptions()
+
+    if weights is not None:
+        if len(funs) != 1 or funs[0] != "mean":
+            raise NotImplementedError(
+                "global_(weights=...) currently only supports fun='mean'"
+            )
+        sdf = x.global_weighted_mean(weights, bool(na_rm), opt)
+    else:
+        sdf = x.mglobal(funs, bool(na_rm), opt)
+
+    df = _getSpatDF(sdf)
+    if df is None:
+        raise RuntimeError("global_: pandas is required for this function")
+    return messages(df, "global") if hasattr(df, "has_error") else df
 
 
 def which_max(x: SpatRaster) -> SpatRaster:

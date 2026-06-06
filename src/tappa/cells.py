@@ -143,7 +143,8 @@ def col_from_x(x: SpatRaster, xcoord: Union[float, List[float]]) -> np.ndarray:
 
 def cell_from_xy(
     x: SpatRaster,
-    xy: Union[List, np.ndarray],
+    xy: Union[float, List, np.ndarray],
+    y: Union[float, List, np.ndarray, None] = None,
 ) -> np.ndarray:
     """
     Return cell numbers for x/y coordinate pairs.
@@ -151,8 +152,11 @@ def cell_from_xy(
     Parameters
     ----------
     x : SpatRaster
-    xy : array-like, shape (n, 2)
-        Columns: [x_coord, y_coord].
+    xy : array-like of shape (n, 2), or a single x-coordinate (or list of x's)
+        when used with the *y* argument. Columns of the matrix form are
+        ``[x_coord, y_coord]``.
+    y : float or array-like, optional
+        Y-coordinate(s) when *xy* is the x-coordinate(s).
 
     Returns
     -------
@@ -160,10 +164,18 @@ def cell_from_xy(
         0-based cell numbers.  Invalid coordinates (outside extent or NaN
         inputs) are ``nan``.
     """
-    xy = np.asarray(xy, dtype=float)
-    if xy.ndim == 1:
-        xy = xy.reshape(1, -1)
-    raw = x.cellFromXY(xy[:, 0].tolist(), xy[:, 1].tolist(), float("nan"))
+    if y is not None:
+        xs = np.atleast_1d(np.asarray(xy, dtype=float)).ravel()
+        ys = np.atleast_1d(np.asarray(y, dtype=float)).ravel()
+        if xs.shape != ys.shape:
+            raise ValueError("cell_from_xy: x and y must have the same length")
+    else:
+        arr = np.asarray(xy, dtype=float)
+        if arr.ndim == 1:
+            arr = arr.reshape(1, -1)
+        xs = arr[:, 0]
+        ys = arr[:, 1]
+    raw = x.cellFromXY(xs.tolist(), ys.tolist(), float("nan"))
     return np.array(raw, dtype=float)
 
 

@@ -22,9 +22,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 
-from ._terra import SpatOptions, SpatRaster
+from ._terra import SpatOptions, SpatRaster, SpatVector
 
-__all__ = ["plot", "plot_rgb"]
+__all__ = ["plot", "plot_rgb", "points", "lines", "polys"]
 
 # ── Default palette ──────────────────────────────────────────────────────────
 
@@ -980,4 +980,271 @@ def plot_rgb(
     _setup_axes(ax_, ext_v, axes, lonlat)
     ax_.imshow(rgba, extent=ext_v, origin="upper",
                interpolation=interp, aspect="auto")
+    return ax_
+
+
+# ── SpatVector overlay helpers (R: points / lines / polys) ───────────────────
+
+# Map R graphics aliases to matplotlib kwarg names. Only used when the matplotlib
+# name has not already been supplied in **kw.
+_R_TO_MPL_COMMON: Dict[str, str] = {
+    "lwd": "linewidth",
+    "lty": "linestyle",
+    "alpha": "alpha",
+}
+_R_TO_MPL_POINT: Dict[str, str] = {
+    "pch": "marker",
+    "cex": "_cex",   # special-cased: pyplot.scatter wants ``s`` (area in pt^2)
+    "col": "color",
+    "bg": "facecolor",
+    "fg": "edgecolor",
+}
+_R_TO_MPL_LINE: Dict[str, str] = {
+    "col": "color",
+}
+_R_TO_MPL_POLY: Dict[str, str] = {
+    "col": "facecolor",
+    "border": "edgecolor",
+    "fill": "facecolor",
+}
+
+# Most common R ``pch`` numeric codes mapped to matplotlib markers.
+_PCH_TO_MARKER: Dict[Any, str] = {
+    0: "s", 1: "o", 2: "^", 3: "+", 4: "x", 5: "D",
+    6: "v", 7: "s", 8: "*", 15: "s", 16: "o", 17: "^",
+    18: "D", 19: "o", 20: ".", 21: "o", 22: "s", 23: "D",
+    24: "^", 25: "v",
+}
+
+
+def _pop_axes_args(
+    kw: Dict[str, Any],
+) -> Tuple[Any, Optional[Tuple[float, float]], bool]:
+    """Pull ``ax``/``figsize``/``add`` out of a kwargs dict (R-style)."""
+    return (
+        kw.pop("ax", None),
+        kw.pop("figsize", None),
+        bool(kw.pop("add", True)),
+    )
+
+
+def _resolve_axes(
+    ax: Any,
+    figsize: Optional[Tuple[float, float]],
+    add: bool,
+) -> Any:
+    """Return the matplotlib Axes to draw on.
+
+    ``add=True`` (default) keeps drawing into the current Axes (or the one
+    passed in via *ax*); ``add=False`` creates a fresh Figure / Axes.
+    """
+    import matplotlib.pyplot as plt
+    if ax is not None:
+        return ax
+    if add and plt.get_fignums():
+        return plt.gca()
+    fig, ax_ = plt.subplots(1, 1, figsize=figsize or (5, 5))
+    return ax_
+
+
+def _translate_kwargs(
+    kw: Dict[str, Any],
+    mapping: Dict[str, str],
+    *,
+    is_point: bool = False,
+) -> Dict[str, Any]:
+    """Translate R graphics kwargs (``col``, ``lwd``, ...) into matplotlib names."""
+    out: Dict[str, Any] = {}
+    for k, v in kw.items():
+        if k in mapping and mapping[k] not in out:
+            out[mapping[k]] = v
+        elif k in _R_TO_MPL_COMMON and _R_TO_MPL_COMMON[k] not in out:
+            out[_R_TO_MPL_COMMON[k]] = v
+        else:
+            out[k] = v
+    if is_point:
+        # cex (relative size) -> matplotlib scatter ``s`` (point-area).
+        # Default base size ~36 pt^2, matching ``pch=20``.
+        cex = out.pop("_cex", out.pop("cex", None))
+        if cex is not None:
+            base = out.pop("s", 36)
+            out["s"] = float(cex) * float(base)
+        # Translate numeric pch codes.
+        marker = out.get("marker")
+        if isinstance(marker, (int, float)):
+            out["marker"] = _PCH_TO_MARKER.get(int(marker), "o")
+    return out
+
+
+def _iter_geom_parts(v: SpatVector):
+    """Yield (geom_id, part_id, xs, ys) for each ring of *v*.
+
+    Resilient to the variable column layout of ``SpatVector.get_geometry()``:
+    points are 4-column (geom, part, x, y), lines also 4-column, polygons add
+    a fifth ``hole`` column. Multi-part geometries are split by (geom, part).
+    """
+    raw = list(v.get_geometry())
+    if not raw:
+        return
+    n_cols = len(raw)
+    # Columns are [geom, part, x, y, hole][:n_cols] (see spatvec.geom()).
+    # We always need x and y at positions 2 and 3.
+    if n_cols < 4:
+        return
+    geom_col = np.asarray(raw[0])
+    part_col = np.asarray(raw[1])
+    x_col = np.asarray(raw[2])
+    y_col = np.asarray(raw[3])
+    if x_col.size == 0:
+        return
+    # Split by (geom, part) preserving order.
+    keys = np.column_stack([geom_col, part_col])
+    # Find boundaries where (geom, part) changes from row to row.
+    if keys.shape[0] == 1:
+        yield (int(geom_col[0]), int(part_col[0]),
+               x_col, y_col)
+        return
+    diff = np.any(keys[1:] != keys[:-1], axis=1)
+    boundaries = np.flatnonzero(diff) + 1
+    starts = np.concatenate([[0], boundaries])
+    ends = np.concatenate([boundaries, [keys.shape[0]]])
+    for s, e in zip(starts, ends):
+        yield (int(geom_col[s]), int(part_col[s]),
+               x_col[s:e], y_col[s:e])
+
+
+def points(
+    x: SpatVector,
+    *,
+    ax: Any = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    add: bool = True,
+    **kwargs: Any,
+) -> Any:
+    """
+    Draw a points :class:`SpatVector` onto a Matplotlib Axes (R ``points``).
+
+    Mirrors R ``terra::points()``. By default this *adds* the points to the
+    currently active plot; pass ``add=False`` (or pass ``ax=`` explicitly) to
+    draw them on a fresh Axes.
+
+    R-style keyword aliases are honoured:
+
+    * ``col`` → ``color``
+    * ``cex`` → scaled into Matplotlib's scatter ``s`` (point area)
+    * ``pch`` → ``marker`` (numeric pch codes are translated; strings pass through)
+    * ``lwd`` → ``linewidth``
+
+    Any other ``**kwargs`` are forwarded as-is to
+    :func:`matplotlib.axes.Axes.scatter` so e.g. ``label=...``, ``zorder=...``
+    work normally.
+    """
+    if x.type() != "points":
+        raise ValueError(
+            f"points: SpatVector is of type {x.type()!r}, expected 'points'"
+        )
+    ax_ = _resolve_axes(ax, figsize, add)
+    raw = list(x.get_geometry())
+    if not raw or len(raw) < 4 or len(raw[2]) == 0:
+        return ax_
+    xs = np.asarray(raw[2], dtype=float)
+    ys = np.asarray(raw[3], dtype=float)
+    plot_kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_POINT, is_point=True)
+    ax_.scatter(xs, ys, **plot_kw)
+    return ax_
+
+
+def lines(
+    x: SpatVector,
+    *,
+    ax: Any = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    add: bool = True,
+    **kwargs: Any,
+) -> Any:
+    """
+    Draw a lines or polygons :class:`SpatVector` as line segments (R ``lines``).
+
+    For polygon inputs each ring is drawn as a closed polyline (no fill); use
+    :func:`polys` if you want filled polygons.
+
+    R-style keyword aliases:
+
+    * ``col`` → ``color``
+    * ``lwd`` → ``linewidth``
+    * ``lty`` → ``linestyle``
+
+    Other ``**kwargs`` are forwarded to :meth:`matplotlib.axes.Axes.plot`.
+    """
+    gtype = x.type()
+    if gtype not in ("lines", "polygons"):
+        raise ValueError(
+            f"lines: SpatVector is of type {gtype!r}, expected 'lines' or 'polygons'"
+        )
+    ax_ = _resolve_axes(ax, figsize, add)
+    plot_kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_LINE)
+    label_used = False
+    label = plot_kw.pop("label", None)
+    for _gid, _pid, xs, ys in _iter_geom_parts(x):
+        if xs.size == 0:
+            continue
+        if gtype == "polygons" and (xs[0] != xs[-1] or ys[0] != ys[-1]):
+            xs = np.append(xs, xs[0])
+            ys = np.append(ys, ys[0])
+        kw = dict(plot_kw)
+        if label is not None and not label_used:
+            kw["label"] = label
+            label_used = True
+        ax_.plot(xs, ys, **kw)
+    return ax_
+
+
+def polys(
+    x: SpatVector,
+    *,
+    ax: Any = None,
+    figsize: Optional[Tuple[float, float]] = None,
+    add: bool = True,
+    **kwargs: Any,
+) -> Any:
+    """
+    Draw a polygons :class:`SpatVector` as filled polygons (R ``polys``).
+
+    R-style keyword aliases:
+
+    * ``col``    → ``facecolor``
+    * ``border`` → ``edgecolor``
+    * ``lwd``    → ``linewidth``
+    * ``lty``    → ``linestyle``
+    * ``alpha``  → ``alpha``
+
+    Pass ``facecolor='none'`` (or ``col='none'``) for outlines only. Other
+    ``**kwargs`` are forwarded to :class:`matplotlib.patches.Polygon`.
+    """
+    if x.type() != "polygons":
+        raise ValueError(
+            f"polys: SpatVector is of type {x.type()!r}, expected 'polygons'"
+        )
+    from matplotlib.patches import Polygon as _MplPolygon
+
+    ax_ = _resolve_axes(ax, figsize, add)
+    plot_kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_POLY)
+    plot_kw.setdefault("facecolor", "none")
+    plot_kw.setdefault("edgecolor", "black")
+    label = plot_kw.pop("label", None)
+    label_used = False
+    any_drawn = False
+    for _gid, _pid, xs, ys in _iter_geom_parts(x):
+        if xs.size == 0:
+            continue
+        verts = np.column_stack([xs, ys])
+        kw = dict(plot_kw)
+        if label is not None and not label_used:
+            kw["label"] = label
+            label_used = True
+        ax_.add_patch(_MplPolygon(verts, closed=True, **kw))
+        any_drawn = True
+    if any_drawn:
+        ax_.set_aspect("equal")
+        ax_.autoscale_view()
     return ax_

@@ -70,7 +70,7 @@ register_reprs()  # attach __repr__ / __str__ to C++ types
 from .extent import ext                                               # noqa: F401
 from .rast import rast                                                # noqa: F401
 from .vect import vect                                                # noqa: F401
-from .plot import plot, plot_rgb                                       # noqa: F401
+from .plot import plot, plot_rgb, points, lines, polys                 # noqa: F401
 
 from .arith import (                                                  # noqa: F401
     # NA / logical tests
@@ -82,6 +82,7 @@ from .arith import (                                                  # noqa: F4
     where_max, where_min,
     rast_sum, rast_mean, rast_min, rast_max,
     rast_median, rast_modal, stdev_rast,
+    global_,
     # compare / logic
     compare_rast, logic_rast_fn,
     # type coercion / queries
@@ -93,6 +94,11 @@ register_operators()  # attach +, -, *, /, ==, … to C++ types
 
 from .methods import register_methods                                 # noqa: F401
 register_methods()    # attach r.crop(), r.mask(), v.buffer(), … to C++ types
+
+# Python-friendly conveniences on the C++ types (mirroring R `length()` /
+# `nrow()`, which terra users rely on).
+SpatVector.__len__ = lambda self: int(self.nrow())  # type: ignore[assignment]
+SpatRaster.__len__ = lambda self: int(self.nlyr())  # type: ignore[assignment]
 
 from .geom import (                                                   # noqa: F401
     # validity
@@ -226,7 +232,7 @@ __all__ = [
     # High-level API (R-like)
     "rast", "vect", "ext", "crs", "proj_pipelines",
     "register_methods",
-    "plot", "plot_rgb",
+    "plot", "plot_rgb", "points", "lines", "polys",
     "messages", "character_crs",
     "show", "repr_raster", "repr_vector", "repr_extent",
     # values
@@ -339,7 +345,7 @@ __all__ = [
     "any_na", "all_na", "no_na", "count_na",
     "which_max", "which_min", "which_lyr",
     "where_max", "where_min",
-    "rast_sum", "rast_mean", "rast_min", "rast_max",
+    "rast_sum", "rast_mean", "rast_min", "rast_max", "global_",
     "rast_median", "rast_modal", "stdev_rast",
     "compare_rast", "logic_rast_fn",
     "as_int_rast", "as_bool_rast",

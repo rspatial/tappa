@@ -99,8 +99,20 @@ def nlyr(x: Any) -> int:
 
 
 def ncell(x: Any) -> int:
-    """Total number of cells."""
-    return x.ncell()
+    """Total number of cells (``nrow * ncol``) as a Python ``int``.
+
+    The C++ ``SpatRaster::ncell()`` returns a ``double`` (computed as
+    ``(double)nrow() * (double)ncol()``) and so silently loses precision
+    once the product exceeds 2**53. For ``SpatRaster`` we therefore read
+    the two ``size_t`` dimensions and multiply with Python's
+    arbitrary-precision ``int`` so that very large rasters (e.g. global
+    decimetre grids) report an exact, unsigned cell count.
+    """
+    if isinstance(x, SpatRaster):
+        return int(x.nrow()) * int(x.ncol())
+    if hasattr(x, "ncell"):
+        return int(x.ncell())
+    raise TypeError(f"ncell: unsupported type {type(x).__name__}")
 
 
 def res(x: SpatRaster) -> List[float]:
@@ -358,9 +370,20 @@ def classify(
         import numpy as np  # type: ignore
 
         if isinstance(rcl, np.ndarray):
-            rcl = rcl.tolist()
+            if rcl.ndim == 1:
+                rcl = rcl.tolist()
+            else:
+                rcl = rcl.tolist()
     except ImportError:
         pass
+
+    # Promote a flat sequence of breakpoints (R's `c(b1, b2, ..., bn)`) to a
+    # 2-column matrix of [from, to] intervals, mirroring R `terra::classify()`.
+    if rcl and not isinstance(rcl[0], (list, tuple)):
+        breaks = [float(b) for b in rcl]
+        if len(breaks) < 2:
+            raise ValueError("classify: need at least two breakpoints")
+        rcl = [[breaks[i], breaks[i + 1], float(i)] for i in range(len(breaks) - 1)]
 
     rcl = [list(row) for row in rcl]
     ncols = len(rcl[0]) if rcl else 0

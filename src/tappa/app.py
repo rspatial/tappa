@@ -85,9 +85,16 @@ def app(
         result = result.reshape(-1, 1)
 
     from .rast import rast
-    out = rast(x)
-    out.nlyr = result.shape[1]
-    flat = result.ravel(order='C')
+    out_nl = int(result.shape[1])
+    ext_v = x.extent.vector
+    out = rast(
+        nrows=nr, ncols=nc, nlyrs=out_nl,
+        xmin=float(ext_v[0]), xmax=float(ext_v[1]),
+        ymin=float(ext_v[2]), ymax=float(ext_v[3]),
+        crs=x.get_crs("wkt") or None,
+    )
+    # Layer-major flat (terra stores values layer-by-layer):
+    flat = result.T.ravel(order='C')
     opt = _opt()
     out.setValues(flat.tolist(), opt)
     return out
@@ -141,9 +148,15 @@ def lapp(
         result = result.reshape(-1, 1)
 
     from .rast import rast
-    out = rast(x)
-    out.nlyr = result.shape[1]
-    flat = result.ravel(order='C')
+    out_nl = int(result.shape[1])
+    ext_v = x.extent.vector
+    out = rast(
+        nrows=nr, ncols=nc, nlyrs=out_nl,
+        xmin=float(ext_v[0]), xmax=float(ext_v[1]),
+        ymin=float(ext_v[2]), ymax=float(ext_v[3]),
+        crs=x.get_crs("wkt") or None,
+    )
+    flat = result.T.ravel(order='C')
     opt = _opt()
     out.setValues(flat.tolist(), opt)
     return out

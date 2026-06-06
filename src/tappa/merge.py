@@ -2,7 +2,7 @@
 merge.py — merge and mosaic rasters and join vector attribute tables.
 """
 from __future__ import annotations
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 
 from ._terra import SpatRaster, SpatRasterCollection, SpatVector, SpatOptions
 from ._helpers import messages, spatoptions
@@ -65,7 +65,17 @@ def merge(
     -------
     SpatRaster
     """
-    all_rasters = [x] + list(others)
+    if isinstance(x, (list, tuple)):
+        if others:
+            raise TypeError(
+                "merge: when x is a list of SpatRasters, no extra positional "
+                "arguments are allowed"
+            )
+        all_rasters = list(x)
+        if not all_rasters:
+            raise ValueError("merge: list of rasters is empty")
+    else:
+        all_rasters = [x] + list(others)
     opt = spatoptions(filename, overwrite)
 
     rc = _sprc_from_rasters(all_rasters)
@@ -131,31 +141,63 @@ def mosaic(
 # ---------------------------------------------------------------------------
 
 def merge_vect(
-    x: SpatVector,
-    y: "pd.DataFrame",
+    x: Union[SpatVector, List[SpatVector]],
+    y: Optional[Union["pd.DataFrame", SpatVector]] = None,
+    *more: SpatVector,
     **kwargs,
 ) -> SpatVector:
     """
-    Join attribute columns from *y* to *x*.
+    Combine SpatVectors or join an attribute table to a SpatVector.
+
+    Two modes mirror R ``terra::merge()``:
+
+    * **Row-bind SpatVectors** — pass a list of SpatVectors (or several
+      positional arguments). Returns one SpatVector with all features.
+    * **Attribute join** — pass *x* (SpatVector) and *y* (pandas.DataFrame).
+      Extra ``**kwargs`` are forwarded to :func:`pandas.merge`.
 
     Parameters
     ----------
-    x : SpatVector
-    y : pandas.DataFrame
-        Table to join.  Must share at least one column with *x*'s
-        attribute table.
+    x : SpatVector or list of SpatVector
+    y : pandas.DataFrame or SpatVector, optional
+        DataFrame to join, *or* a second SpatVector to row-bind onto *x*.
+    *more : SpatVector
+        Additional SpatVectors to row-bind.
     **kwargs
-        Forwarded to ``pandas.merge`` (e.g. ``on``, ``how``).
+        Forwarded to ``pandas.merge`` for the attribute-join mode.
 
     Returns
     -------
     SpatVector
     """
+    if isinstance(x, (list, tuple)):
+        items = list(x)
+        if y is not None or more:
+            raise TypeError(
+                "merge_vect: when x is a list of SpatVectors, no extra "
+                "positional arguments are allowed"
+            )
+    elif isinstance(y, SpatVector) or any(isinstance(m, SpatVector) for m in more):
+        items = [x] + ([y] if y is not None else []) + list(more)
+    else:
+        items = None  # attribute-join mode
+
+    if items is not None:
+        if not items:
+            raise ValueError("merge_vect: no SpatVectors to combine")
+        out = items[0].deepcopy()
+        for v in items[1:]:
+            out = out.append(v, True)
+        return messages(out, "merge_vect")
+
     try:
         import pandas as pd
     except ImportError:
         raise ImportError("pandas is required for merge_vect()")
     from ._helpers import _getSpatDF, _makeSpatDF
+
+    if y is None:
+        raise TypeError("merge_vect: missing argument 'y' (DataFrame or SpatVector)")
 
     v = _getSpatDF(x.df)
     if v is None:
@@ -165,10 +207,12 @@ def merge_vect(
     m = pd.merge(v, y, **kwargs)
     m = m.sort_values(uid_col).reset_index(drop=True)
     if len(m) > len(x):
-        raise ValueError("merge would expand the number of features; 'all.y=True' is not supported")
+        raise ValueError(
+            "merge would expand the number of features; 'all.y=True' is not supported"
+        )
     uid_vals = m[uid_col].dropna().astype(int).tolist()
     m = m.drop(columns=[uid_col])
-    xc = x.subset(uid_vals, _opt())
+    xc = x.subset_rows(uid_vals)
     sdf = _makeSpatDF(m)
     xc.set_df(sdf)
     return xc
