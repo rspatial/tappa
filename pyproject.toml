@@ -6,7 +6,7 @@ build-backend = "scikit_build_core.build"
 [project]
 # PyPI / pip name and import package: tappa (see wheel.packages → src/tappa/)
 name = "tappa"
-version = "0.0.1"
+version = "0.1.0"
 description = "tappa — Python bindings for the terra geospatial API"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }

@@ -70,7 +70,7 @@ register_reprs()  # attach __repr__ / __str__ to C++ types
 from .extent import ext                                               # noqa: F401
 from .rast import rast                                                # noqa: F401
 from .vect import vect                                                # noqa: F401
-from .plot import plot, plot_rgb, points, lines, polys                 # noqa: F401
+from .plot import plot, plot_rgb, points, lines, polys, text           # noqa: F401
 
 from .arith import (                                                  # noqa: F401
     # NA / logical tests
@@ -232,7 +232,7 @@ __all__ = [
     # High-level API (R-like)
     "rast", "vect", "ext", "crs", "proj_pipelines",
     "register_methods",
-    "plot", "plot_rgb", "points", "lines", "polys",
+    "plot", "plot_rgb", "points", "lines", "polys", "text",
     "messages", "character_crs",
     "show", "repr_raster", "repr_vector", "repr_extent",
     # values

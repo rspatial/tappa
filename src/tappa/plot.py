@@ -24,7 +24,7 @@ import numpy as np
 
 from ._terra import SpatOptions, SpatRaster, SpatVector
 
-__all__ = ["plot", "plot_rgb", "points", "lines", "polys"]
+__all__ = ["plot", "plot_rgb", "points", "lines", "polys", "text"]
 
 # ── Default palette ──────────────────────────────────────────────────────────
 
@@ -519,16 +519,42 @@ def _add_class_legend(
 
 # ── Axes / title helpers ──────────────────────────────────────────────────────
 
+def _aspect_for_extent(
+    ext: Sequence[float], lonlat: bool
+) -> float:
+    """Return the y/x display aspect to use for a spatial plot.
+
+    Mirrors :func:`terra::plot`'s rule:
+
+    * lon/lat data → ``1 / cos(mean_latitude)`` so 1 deg of latitude renders
+      the same length as 1 deg of longitude at the centre of the extent.
+    * projected (planar) data → ``1`` (equal scaling on both axes).
+    """
+    if not lonlat:
+        return 1.0
+    _, _, ymin, ymax = ext[:4]
+    mean_lat = 0.5 * (float(ymin) + float(ymax))
+    # Clamp to avoid divide-by-zero / extreme stretching at the poles.
+    mean_lat = max(min(mean_lat, 89.9), -89.9)
+    return 1.0 / math.cos(math.radians(mean_lat))
+
+
 def _setup_axes(
     ax: Any,
     ext: Sequence[float],
     axes: bool,
     lonlat: bool,
-) -> None:
-    """Configure axis ticks and labels for a spatial plot."""
+) -> float:
+    """Configure axis ticks/labels and aspect ratio for a spatial plot.
+
+    Returns the numeric y/x aspect that was applied so that callers can pass
+    it on to ``imshow`` (which otherwise overrides ``ax.set_aspect``).
+    """
     xmin, xmax, ymin, ymax = ext
     ax.set_xlim(xmin, xmax)
     ax.set_ylim(ymin, ymax)
+    asp = _aspect_for_extent(ext, lonlat)
+    ax.set_aspect(asp)
     if not axes:
         ax.set_xticks([])
         ax.set_yticks([])
@@ -537,6 +563,7 @@ def _setup_axes(
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.tick_params(labelsize=8)
+    return asp
 
 
 def _get_nrnc(nr: Optional[int], nc: Optional[int], nl: int) -> Tuple[int, int]:
@@ -622,12 +649,26 @@ def _plot_one_layer(
             type = "continuous"
 
     # ── colour pipeline ──────────────────────────────────────────────────────
+    # Resolve default breaks for ``type="interval"`` so an empty ``breaks=``
+    # doesn't fall through both branches and produce an empty plot. R
+    # ``terra::plot`` similarly auto-derives breaks for ``type="interval"``.
+    if type == "interval" and breaks is None:
+        valid = arr[np.isfinite(arr)]
+        if valid.size > 0:
+            lo, hi = float(np.nanmin(valid)), float(np.nanmax(valid))
+            n_bins = 5
+            breaks = (
+                np.linspace(lo, hi, n_bins + 1)
+                if hi > lo
+                else np.array([lo - 0.5, lo + 0.5])
+            )
+
     if type in ("continuous", "interval") and breaks is not None:
         breaks_arr = np.asarray(breaks, dtype=np.float64)
         rgba, labels, fill_cols = _interval_image(arr, breaks_arr, palette)
-        _setup_axes(ax, ext_v, axes, lonlat)
+        asp = _setup_axes(ax, ext_v, axes, lonlat)
         ax.imshow(rgba, extent=ext_v, origin="upper",
-                  interpolation=interp, aspect="auto", alpha=alpha)
+                  interpolation=interp, aspect=asp, alpha=alpha)
         if legend:
             _add_class_legend(ax, labels, fill_cols, title=title)
 
@@ -635,7 +676,7 @@ def _plot_one_layer(
         rgba, (vmin, vmax), digits = _continuous_image(
             arr, palette, range_vals=zlim, fill_range=clamp
         )
-        _setup_axes(ax, ext_v, axes, lonlat)
+        asp = _setup_axes(ax, ext_v, axes, lonlat)
         n = len(palette)
         cmap = mc.ListedColormap(palette)
         norm = mc.Normalize(
@@ -644,19 +685,19 @@ def _plot_one_layer(
         )
         if not np.isnan(vmin) and not np.isnan(vmax):
             ax.imshow(rgba, extent=ext_v, origin="upper",
-                      interpolation=interp, aspect="auto", alpha=alpha)
+                      interpolation=interp, aspect=asp, alpha=alpha)
             if legend:
                 _add_continuous_legend(ax, cmap, norm, digits=digits, title=title)
         else:
             ax.imshow(rgba, extent=ext_v, origin="upper",
-                      interpolation=interp, aspect="auto")
+                      interpolation=interp, aspect=asp)
 
     elif type == "classes":
         lv = [float(v) for v in levels] if levels is not None else None
         rgba, lv_used, fill_cols = _classes_image(arr, palette, levels=lv)
-        _setup_axes(ax, ext_v, axes, lonlat)
+        asp = _setup_axes(ax, ext_v, axes, lonlat)
         ax.imshow(rgba, extent=ext_v, origin="upper",
-                  interpolation=interp, aspect="auto", alpha=alpha)
+                  interpolation=interp, aspect=asp, alpha=alpha)
         if legend:
             str_labels = [str(v) for v in lv_used]
             _add_class_legend(ax, str_labels, fill_cols, title=title)
@@ -673,9 +714,9 @@ def _plot_one_layer(
         else:
             rgba, lv_used, fill_cols = _classes_image(arr, palette)
             leg_labels = [str(v) for v in lv_used]
-        _setup_axes(ax, ext_v, axes, lonlat)
+        asp = _setup_axes(ax, ext_v, axes, lonlat)
         ax.imshow(rgba, extent=ext_v, origin="upper",
-                  interpolation=interp, aspect="auto", alpha=alpha)
+                  interpolation=interp, aspect=asp, alpha=alpha)
         if legend:
             _add_class_legend(ax, leg_labels, fill_cols, title=title)
 
@@ -686,9 +727,9 @@ def _plot_one_layer(
             rgba = _colortable_image(arr, coltab_obj)
         else:
             rgba, _, _ = _classes_image(arr, palette)
-        _setup_axes(ax, ext_v, axes, lonlat)
+        asp = _setup_axes(ax, ext_v, axes, lonlat)
         ax.imshow(rgba, extent=ext_v, origin="upper",
-                  interpolation=interp, aspect="auto", alpha=alpha)
+                  interpolation=interp, aspect=asp, alpha=alpha)
 
     elif type == "rgb":
         rgb_idxs = r.getRGB()
@@ -696,13 +737,13 @@ def _plot_one_layer(
             rgb_idxs = [0, 1, 2]
         rgba = _rgb_image(r, rgb_idxs, stretch=None,
                           na_color=na_color or "white")
-        _setup_axes(ax, ext_v, axes, lonlat)
+        asp = _setup_axes(ax, ext_v, axes, lonlat)
         ax.imshow(rgba, extent=ext_v, origin="upper",
-                  interpolation=interp, aspect="auto")
+                  interpolation=interp, aspect=asp)
 
     # ── NA colour overlay ────────────────────────────────────────────────────
     if na_color is not None and type not in ("rgb", "colortable"):
-        _add_na_overlay(ax, arr, na_color, ext_v, interp, alpha)
+        _add_na_overlay(ax, arr, na_color, ext_v, interp, alpha, asp=ax.get_aspect())
 
     # ── title ────────────────────────────────────────────────────────────────
     if title:
@@ -716,8 +757,13 @@ def _add_na_overlay(
     ext: Sequence[float],
     interp: str,
     alpha: float,
+    asp: Any = "auto",
 ) -> None:
-    """Draw a solid overlay colour for NA cells."""
+    """Draw a solid overlay colour for NA cells.
+
+    Inherits the axes aspect via *asp* so we don't undo the ratio set by
+    :func:`_setup_axes` (matplotlib's ``imshow`` would otherwise clobber it).
+    """
     import matplotlib.colors as mc
     import numpy as np
 
@@ -726,13 +772,13 @@ def _add_na_overlay(
     mask = ~np.isfinite(arr)
     overlay[mask] = na_rgba
     ax.imshow(overlay, extent=ext, origin="upper",
-              interpolation=interp, aspect="auto")
+              interpolation=interp, aspect=asp)
 
 
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def plot(
-    r: SpatRaster,
+    r: Union[SpatRaster, SpatVector],
     y: Union[int, List[int], str, List[str], None] = None,
     *,
     col: Optional[Union[List[str], str]] = None,
@@ -756,14 +802,16 @@ def plot(
     **kwargs: Any,
 ) -> Any:
     """
-    Plot one or more layers of a SpatRaster.
+    Plot a SpatRaster or SpatVector.
 
-    When ``y`` selects a single layer the result is drawn in *ax* (or a newly
-    created Axes).  When multiple layers are selected, a grid of subplots is
-    created and all Axes are returned as a 2-D numpy array.
+    For :class:`SpatRaster` this draws one or more layers (possibly as a grid
+    of subplots when multiple layers are selected). For :class:`SpatVector`
+    a single panel is drawn with the appropriate geometry painter (points,
+    lines, or filled polygons) and an aspect ratio chosen from the CRS, so
+    callers don't need to assemble the figure themselves.
 
     Args:
-        r: SpatRaster to plot.
+        r: SpatRaster or SpatVector to plot.
         y: Layer selector.  Can be:
 
             * ``None`` — plot all layers (up to ``maxnl``).
@@ -809,6 +857,20 @@ def plot(
     import matplotlib.pyplot as plt
     import matplotlib.cm as cm
     import builtins
+
+    if isinstance(r, SpatVector):
+        return _plot_spatvector(
+            r,
+            y=y,
+            col=col,
+            legend=legend,
+            axes=axes,
+            alpha=alpha,
+            main=main,
+            ax=ax,
+            figsize=figsize,
+            **kwargs,
+        )
 
     if not r.hasValues:
         warnings.warn("plot: SpatRaster has no cell values", stacklevel=2)
@@ -977,9 +1039,9 @@ def plot_rgb(
     lonlat = r.isLonLat()
     interp = "bilinear" if smooth else "nearest"
 
-    _setup_axes(ax_, ext_v, axes, lonlat)
+    asp = _setup_axes(ax_, ext_v, axes, lonlat)
     ax_.imshow(rgba, extent=ext_v, origin="upper",
-               interpolation=interp, aspect="auto")
+               interpolation=interp, aspect=asp)
     return ax_
 
 
@@ -1017,34 +1079,49 @@ _PCH_TO_MARKER: Dict[Any, str] = {
 }
 
 
-def _pop_axes_args(
-    kw: Dict[str, Any],
-) -> Tuple[Any, Optional[Tuple[float, float]], bool]:
-    """Pull ``ax``/``figsize``/``add`` out of a kwargs dict (R-style)."""
-    return (
-        kw.pop("ax", None),
-        kw.pop("figsize", None),
-        bool(kw.pop("add", True)),
-    )
+def _resolve_overlay_axes(ax: Any) -> Any:
+    """Return the Axes onto which an overlay (``points``/``lines``/``polys``)
+    should draw.
 
-
-def _resolve_axes(
-    ax: Any,
-    figsize: Optional[Tuple[float, float]],
-    add: bool,
-) -> Any:
-    """Return the matplotlib Axes to draw on.
-
-    ``add=True`` (default) keeps drawing into the current Axes (or the one
-    passed in via *ax*); ``add=False`` creates a fresh Figure / Axes.
+    Always additive — these helpers never create new figures. If the user
+    passes an explicit *ax* it is used as-is. Otherwise we draw onto the
+    currently active Axes (``plt.gca()``); to plot a vector from scratch
+    use :func:`plot` instead.
     """
     import matplotlib.pyplot as plt
     if ax is not None:
         return ax
-    if add and plt.get_fignums():
-        return plt.gca()
-    fig, ax_ = plt.subplots(1, 1, figsize=figsize or (5, 5))
-    return ax_
+    return plt.gca()
+
+
+def _reject_layout_kwargs(fname: str, kwargs: Dict[str, Any]) -> None:
+    """Catch legacy ``add=``/``figsize=`` calls and redirect to :func:`plot`."""
+    bad = [k for k in ("add", "figsize") if k in kwargs]
+    if bad:
+        raise TypeError(
+            f"{fname}() does not accept {', '.join(repr(b) for b in bad)} — "
+            "these helpers are pure overlays. Use pt.plot(v, ...) to draw a "
+            "SpatVector from scratch (it sizes the figure and chooses the "
+            "aspect ratio for you), then add overlays with "
+            f"pt.{fname}(..., ax=...)."
+        )
+
+
+def _vector_extent(v: SpatVector) -> Optional[Sequence[float]]:
+    """Return ``(xmin, xmax, ymin, ymax)`` for a SpatVector, or ``None``.
+
+    Tolerates either method or property access patterns, since ``extent``
+    is a method on :class:`SpatVector` (in contrast with the property on
+    :class:`SpatRaster`).
+    """
+    try:
+        e = v.extent() if callable(getattr(v, "extent", None)) else v.extent
+        ev = e.vector if hasattr(e, "vector") else e
+    except Exception:
+        return None
+    if ev is None or len(ev) < 4:
+        return None
+    return ev
 
 
 def _translate_kwargs(
@@ -1113,20 +1190,230 @@ def _iter_geom_parts(v: SpatVector):
                x_col[s:e], y_col[s:e])
 
 
+def _setup_vector_axes(
+    ax: Any, v: SpatVector, axes: bool
+) -> None:
+    """Apply extent, aspect, and tick setup for a from-scratch SpatVector plot."""
+    ev = _vector_extent(v)
+    if ev is None:
+        return
+    xmin, xmax, ymin, ymax = ev
+    # Pad by 4% of each side so geometries don't touch the axis frame.
+    pad_x = 0.04 * (xmax - xmin) if xmax > xmin else 1.0
+    pad_y = 0.04 * (ymax - ymin) if ymax > ymin else 1.0
+    ax.set_xlim(xmin - pad_x, xmax + pad_x)
+    ax.set_ylim(ymin - pad_y, ymax + pad_y)
+    try:
+        lonlat = bool(v.isLonLat())
+    except Exception:
+        lonlat = False
+    ax.set_aspect(_aspect_for_extent(ev, lonlat))
+    if not axes:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.axis("off")
+    else:
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.tick_params(labelsize=8)
+
+
+def _resolve_color_by_attr(
+    v: SpatVector,
+    y: Union[int, str, None],
+    palette: Optional[Union[List[str], str]],
+) -> Tuple[Optional[List[str]], Optional[List[str]], Optional[List[str]]]:
+    """Build per-feature colours when a SpatVector is to be coloured by attribute.
+
+    Returns a triple ``(face_colors, legend_labels, legend_colors)``. All
+    three are ``None`` when *y* is ``None`` (caller falls back to a single
+    default colour). Numeric attributes are binned into 10 equal-interval
+    classes; categorical attributes use one colour per unique value.
+    """
+    if y is None:
+        return None, None, None
+    import matplotlib.cm as cm
+    import matplotlib.colors as mc
+
+    try:
+        from .values import vect_values
+        df = vect_values(v)
+    except Exception:
+        return None, None, None
+    cols = list(df.columns) if hasattr(df, "columns") else []
+    col_name = y if isinstance(y, str) else (cols[int(y)] if cols else None)
+    if col_name is None or col_name not in cols:
+        return None, None, None
+    values = df[col_name].tolist()
+
+    if palette is None:
+        pal = _default_palette(255)
+    elif isinstance(palette, str):
+        cmap_obj = cm.get_cmap(palette, 255)
+        pal = [mc.to_hex(cmap_obj(i)) for i in range(255)]
+    else:
+        pal = list(palette)
+
+    numeric_vals: List[float] = []
+    is_numeric = True
+    for v_ in values:
+        try:
+            numeric_vals.append(float(v_))
+        except (TypeError, ValueError):
+            is_numeric = False
+            break
+
+    if is_numeric:
+        arr = np.array(numeric_vals, dtype=float)
+        finite = arr[np.isfinite(arr)]
+        if finite.size == 0:
+            return None, None, None
+        n_bins = min(10, max(1, len(set(finite.tolist()))))
+        breaks = np.linspace(finite.min(), finite.max(), n_bins + 1)
+        idxs = np.clip(np.digitize(arr, breaks[:-1]) - 1, 0, n_bins - 1)
+        palette_idxs = np.round(np.linspace(0, len(pal) - 1, n_bins)).astype(int)
+        bin_colors = [pal[i] for i in palette_idxs]
+        face = [bin_colors[i] for i in idxs]
+        legend_labels = [
+            f"{breaks[i]:.4g} – {breaks[i+1]:.4g}" for i in range(n_bins)
+        ]
+        return face, legend_labels, bin_colors
+
+    cats = []
+    for v_ in values:
+        if v_ not in cats:
+            cats.append(v_)
+    palette_idxs = np.round(np.linspace(0, len(pal) - 1, len(cats))).astype(int)
+    cat_colors = [pal[i] for i in palette_idxs]
+    cat_to_color = {c: cat_colors[i] for i, c in enumerate(cats)}
+    face = [cat_to_color[v_] for v_ in values]
+    legend_labels = [str(c) for c in cats]
+    return face, legend_labels, cat_colors
+
+
+def _plot_spatvector(
+    v: SpatVector,
+    *,
+    y: Union[int, str, None],
+    col: Optional[Union[List[str], str]],
+    legend: bool,
+    axes: bool,
+    alpha: float,
+    main: Optional[Union[str, List[str]]],
+    ax: Optional[Any],
+    figsize: Optional[Tuple[float, float]],
+    **kwargs: Any,
+) -> Any:
+    """Draw a :class:`SpatVector` from scratch (R ``terra::plot.SpatVector``).
+
+    Geometry-aware: points → scatter, lines → polylines, polygons → filled
+    polygons. When *y* identifies an attribute column the features are
+    coloured by that attribute (numeric → equal-interval, otherwise →
+    categorical). Caller-supplied style kwargs (``edgecolor``, ``linewidth``,
+    ``border``, ``lwd``, ``lty``, ``s``, ``cex``, ``pch`` ...) are applied
+    to the painter; per-feature fills come from *y* / *col*.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon as _MplPolygon
+
+    if ax is None:
+        fig, ax_ = plt.subplots(1, 1, figsize=figsize or (6, 5))
+    else:
+        ax_ = ax
+
+    gtype = v.type()
+    face_colors, leg_labels, leg_colors = _resolve_color_by_attr(v, y, col)
+
+    if gtype == "points":
+        raw = list(v.get_geometry())
+        if raw and len(raw) >= 4 and len(raw[2]) > 0:
+            xs = np.asarray(raw[2], dtype=float)
+            ys = np.asarray(raw[3], dtype=float)
+            geom_ids = np.asarray(raw[0], dtype=int)
+            kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_POINT, is_point=True)
+            kw.setdefault("alpha", alpha)
+            kw.setdefault("s", 20)
+            if face_colors is not None:
+                kw["c"] = [face_colors[g - 1] for g in geom_ids]
+                kw.pop("color", None)
+            else:
+                kw.setdefault("color", "black")
+            ax_.scatter(xs, ys, **kw)
+
+    elif gtype == "lines":
+        kw_base = _translate_kwargs(dict(kwargs), _R_TO_MPL_LINE)
+        kw_base.setdefault("alpha", alpha)
+        kw_base.setdefault("linewidth", 1)
+        for gid, _pid, xs, ys in _iter_geom_parts(v):
+            if xs.size == 0:
+                continue
+            kw = dict(kw_base)
+            if face_colors is not None:
+                kw["color"] = face_colors[gid - 1]
+            else:
+                kw.setdefault("color", "black")
+            ax_.plot(xs, ys, **kw)
+
+    elif gtype == "polygons":
+        kw_base = _translate_kwargs(dict(kwargs), _R_TO_MPL_POLY)
+        kw_base.setdefault("edgecolor", "black")
+        kw_base.setdefault("linewidth", 0.5)
+        kw_base.setdefault("alpha", alpha)
+        # Resolve the fill colour. R's ``terra::plot.SpatVector`` overloads
+        # ``col``: with ``y`` it's a palette; without ``y`` a single string
+        # becomes the fill, and a list/tuple is interpreted per-feature.
+        # An explicit ``facecolor`` / ``border`` kwarg always wins.
+        user_face = kw_base.pop("facecolor", None)
+        if user_face is None and y is None and col is not None:
+            user_face = col  # str → single colour; list → per-feature
+        for gid, _pid, xs, ys in _iter_geom_parts(v):
+            if xs.size == 0:
+                continue
+            verts = np.column_stack([xs, ys])
+            if user_face is not None:
+                face = (
+                    user_face[gid - 1]
+                    if isinstance(user_face, (list, tuple))
+                    else user_face
+                )
+            elif face_colors is not None:
+                face = face_colors[gid - 1]
+            else:
+                face = "lightgrey"
+            ax_.add_patch(
+                _MplPolygon(verts, closed=True, facecolor=face, **kw_base)
+            )
+    else:
+        raise ValueError(f"plot: unsupported SpatVector type {gtype!r}")
+
+    _setup_vector_axes(ax_, v, axes)
+
+    if legend and leg_labels and leg_colors:
+        title_str = (
+            (main[0] if isinstance(main, (list, tuple)) else main) or
+            (str(y) if y is not None else "")
+        )
+        _add_class_legend(ax_, leg_labels, leg_colors, title=title_str)
+    elif main:
+        ax_.set_title(
+            main[0] if isinstance(main, (list, tuple)) else main, fontsize=9
+        )
+    return ax_
+
+
 def points(
     x: SpatVector,
     *,
     ax: Any = None,
-    figsize: Optional[Tuple[float, float]] = None,
-    add: bool = True,
     **kwargs: Any,
 ) -> Any:
     """
-    Draw a points :class:`SpatVector` onto a Matplotlib Axes (R ``points``).
+    Add a points :class:`SpatVector` to an existing plot (R ``points``).
 
-    Mirrors R ``terra::points()``. By default this *adds* the points to the
-    currently active plot; pass ``add=False`` (or pass ``ax=`` explicitly) to
-    draw them on a fresh Axes.
+    This is a pure overlay: the points are drawn onto *ax* (or the current
+    Axes when *ax* is omitted). To plot a SpatVector from scratch — with
+    proper extent, aspect ratio, and optional fill colours — use
+    :func:`plot`.
 
     R-style keyword aliases are honoured:
 
@@ -1139,11 +1426,12 @@ def points(
     :func:`matplotlib.axes.Axes.scatter` so e.g. ``label=...``, ``zorder=...``
     work normally.
     """
+    _reject_layout_kwargs("points", kwargs)
     if x.type() != "points":
         raise ValueError(
             f"points: SpatVector is of type {x.type()!r}, expected 'points'"
         )
-    ax_ = _resolve_axes(ax, figsize, add)
+    ax_ = _resolve_overlay_axes(ax)
     raw = list(x.get_geometry())
     if not raw or len(raw) < 4 or len(raw[2]) == 0:
         return ax_
@@ -1151,6 +1439,11 @@ def points(
     ys = np.asarray(raw[3], dtype=float)
     plot_kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_POINT, is_point=True)
     ax_.scatter(xs, ys, **plot_kw)
+    # ``scatter`` already updates the axes data limits, so autoscale_view()
+    # extends the view to include the new points when the axes is fresh
+    # (no-op when the user has explicitly fixed xlim / ylim, e.g. after
+    # ``pt.plot(r, ax=ax)``).
+    ax_.autoscale_view()
     return ax_
 
 
@@ -1158,15 +1451,16 @@ def lines(
     x: SpatVector,
     *,
     ax: Any = None,
-    figsize: Optional[Tuple[float, float]] = None,
-    add: bool = True,
     **kwargs: Any,
 ) -> Any:
     """
-    Draw a lines or polygons :class:`SpatVector` as line segments (R ``lines``).
+    Add a lines or polygons :class:`SpatVector` to an existing plot as line
+    segments (R ``lines``).
 
-    For polygon inputs each ring is drawn as a closed polyline (no fill); use
-    :func:`polys` if you want filled polygons.
+    Pure overlay (no figure / aspect setup); use :func:`plot` to render a
+    SpatVector from scratch. For polygon inputs each ring is drawn as a
+    closed polyline (no fill); use :func:`polys` if you want filled
+    polygons.
 
     R-style keyword aliases:
 
@@ -1176,12 +1470,13 @@ def lines(
 
     Other ``**kwargs`` are forwarded to :meth:`matplotlib.axes.Axes.plot`.
     """
+    _reject_layout_kwargs("lines", kwargs)
     gtype = x.type()
     if gtype not in ("lines", "polygons"):
         raise ValueError(
             f"lines: SpatVector is of type {gtype!r}, expected 'lines' or 'polygons'"
         )
-    ax_ = _resolve_axes(ax, figsize, add)
+    ax_ = _resolve_overlay_axes(ax)
     plot_kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_LINE)
     label_used = False
     label = plot_kw.pop("label", None)
@@ -1196,6 +1491,7 @@ def lines(
             kw["label"] = label
             label_used = True
         ax_.plot(xs, ys, **kw)
+    ax_.autoscale_view()
     return ax_
 
 
@@ -1203,12 +1499,13 @@ def polys(
     x: SpatVector,
     *,
     ax: Any = None,
-    figsize: Optional[Tuple[float, float]] = None,
-    add: bool = True,
     **kwargs: Any,
 ) -> Any:
     """
-    Draw a polygons :class:`SpatVector` as filled polygons (R ``polys``).
+    Add a polygons :class:`SpatVector` to an existing plot (R ``polys``).
+
+    Pure overlay onto *ax* (or the current Axes); use :func:`plot` to draw
+    polygons from scratch.
 
     R-style keyword aliases:
 
@@ -1221,19 +1518,20 @@ def polys(
     Pass ``facecolor='none'`` (or ``col='none'``) for outlines only. Other
     ``**kwargs`` are forwarded to :class:`matplotlib.patches.Polygon`.
     """
+    _reject_layout_kwargs("polys", kwargs)
     if x.type() != "polygons":
         raise ValueError(
             f"polys: SpatVector is of type {x.type()!r}, expected 'polygons'"
         )
     from matplotlib.patches import Polygon as _MplPolygon
 
-    ax_ = _resolve_axes(ax, figsize, add)
+    ax_ = _resolve_overlay_axes(ax)
     plot_kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_POLY)
     plot_kw.setdefault("facecolor", "none")
     plot_kw.setdefault("edgecolor", "black")
     label = plot_kw.pop("label", None)
     label_used = False
-    any_drawn = False
+    all_verts: List[np.ndarray] = []
     for _gid, _pid, xs, ys in _iter_geom_parts(x):
         if xs.size == 0:
             continue
@@ -1243,8 +1541,161 @@ def polys(
             kw["label"] = label
             label_used = True
         ax_.add_patch(_MplPolygon(verts, closed=True, **kw))
-        any_drawn = True
-    if any_drawn:
-        ax_.set_aspect("equal")
+        all_verts.append(verts)
+    # ``Axes.add_patch`` does not always extend ``dataLim`` for polygons,
+    # so push the vertices in explicitly and then ``autoscale_view()`` so a
+    # blank axes ends up showing the polygons. (No-op when the caller has
+    # already set explicit xlim / ylim, e.g. after ``pt.plot(r, ax=ax)``.)
+    if all_verts:
+        ax_.update_datalim(np.vstack(all_verts))
         ax_.autoscale_view()
+    return ax_
+
+
+# R ``text()`` aliases. ``cex`` is special-cased: matplotlib's ``ax.text``
+# wants ``fontsize`` (in points), so we multiply the rcParams default.
+_R_TO_MPL_TEXT: Dict[str, str] = {
+    "col": "color",
+    "cex": "_cex",
+    "family": "family",
+    "srt": "rotation",
+    "adj": "_adj",
+}
+
+
+def _resolve_text_labels(
+    x: SpatVector,
+    labels: Union[str, int, Sequence[Any], None],
+) -> List[str]:
+    """Resolve the *labels* argument of :func:`text` to a list of strings,
+    one per feature, mirroring R ``terra::text``."""
+    n = int(x.nrow())
+    if labels is None:
+        return [str(i + 1) for i in range(n)]
+    if isinstance(labels, (str, int)):
+        try:
+            from .values import vect_values
+            df = vect_values(x)
+        except Exception:
+            df = None
+        cols = list(df.columns) if df is not None and hasattr(df, "columns") else []
+        col_name: Optional[str] = None
+        if isinstance(labels, str):
+            if labels in cols:
+                col_name = labels
+        else:  # int → column index
+            if cols and 0 <= int(labels) < len(cols):
+                col_name = cols[int(labels)]
+        if col_name is not None:
+            return [str(v) for v in df[col_name].tolist()]
+        # Fall through: treat scalar as a literal label repeated n times.
+        return [str(labels)] * n
+    return [str(v) for v in labels]
+
+
+def text(
+    x: SpatVector,
+    labels: Union[str, int, Sequence[Any], None] = None,
+    *,
+    ax: Any = None,
+    halo: bool = False,
+    hc: str = "white",
+    hw: float = 0.1,
+    inside: bool = False,
+    jitter: float = 0,
+    **kwargs: Any,
+) -> Any:
+    """Add labels to features of a :class:`SpatVector` (R ``terra::text``).
+
+    Pure overlay: labels are drawn at feature centroids onto *ax* (or the
+    current Axes). Use :func:`plot` to draw the geometry first.
+
+    Args:
+        x: SpatVector (any geometry type). Labels are placed at centroids.
+        labels: What to label features with. May be:
+
+            * ``None`` — feature index (1-based, matching R).
+            * column name (``str``) or column index (``int``) — values from
+              that attribute column.
+            * sequence — used as-is (must have ``nrow(x)`` entries).
+
+        ax: Existing matplotlib ``Axes``. Defaults to the current Axes.
+        halo: If True, draw a contrasting outline around each label.
+        hc: Halo (outline) colour.
+        hw: Halo (outline) line width in points.
+        inside: Use ``point_on_surface``-style centroids that are guaranteed
+            to fall inside the polygon. *Not yet implemented* — a regular
+            geometric centroid is used; emits a warning when set.
+        jitter: Random offset factor applied to each centroid (fraction of
+            the data range), useful when many labels overlap. ``0`` (default)
+            disables.
+        **kwargs: Forwarded to :func:`matplotlib.axes.Axes.text`. R-style
+            aliases are honoured: ``col``→``color``, ``cex``→``fontsize``
+            (relative to the default), ``srt``→``rotation``, ``family``,
+            ``adj``→``ha`` / ``va``.
+    """
+    _reject_layout_kwargs("text", kwargs)
+    ax_ = _resolve_overlay_axes(ax)
+
+    # Centroids of every feature.
+    cv = x.centroid(False)
+    raw = list(cv.get_geometry())
+    if not raw or len(raw) < 4 or len(raw[2]) == 0:
+        return ax_
+    cx = np.asarray(raw[2], dtype=float)
+    cy = np.asarray(raw[3], dtype=float)
+
+    if inside:
+        warnings.warn(
+            "text(inside=True) is not yet implemented; using ordinary "
+            "centroids. Some labels may fall outside their polygon.",
+            stacklevel=2,
+        )
+
+    if jitter and jitter > 0:
+        rng = np.random.default_rng()
+        rx = (cx.max() - cx.min()) * float(jitter)
+        ry = (cy.max() - cy.min()) * float(jitter)
+        cx = cx + rng.uniform(-rx, rx, size=cx.shape)
+        cy = cy + rng.uniform(-ry, ry, size=cy.shape)
+
+    label_strs = _resolve_text_labels(x, labels)
+    if len(label_strs) != cx.size:
+        # ``centroid`` collapses multi-part features into a single point per
+        # feature, so the lengths should match. If they don't (e.g. caller
+        # passed a too-short labels sequence) recycle.
+        label_strs = [label_strs[i % len(label_strs)] for i in range(cx.size)]
+
+    # Translate R kwargs.
+    plot_kw = _translate_kwargs(dict(kwargs), _R_TO_MPL_TEXT)
+    cex = plot_kw.pop("_cex", None)
+    if cex is not None:
+        import matplotlib as _mpl
+        base = float(plot_kw.pop("fontsize", _mpl.rcParams["font.size"]))
+        plot_kw["fontsize"] = float(cex) * base
+    adj = plot_kw.pop("_adj", None)
+    if adj is not None:
+        # R ``adj`` is (horiz, vert) in [0..1]; matplotlib uses ha/va keywords.
+        if isinstance(adj, (list, tuple)) and len(adj) >= 2:
+            ha_map = {0: "left", 0.5: "center", 1: "right"}
+            va_map = {0: "bottom", 0.5: "center", 1: "top"}
+            plot_kw.setdefault("ha", ha_map.get(adj[0], "center"))
+            plot_kw.setdefault("va", va_map.get(adj[1], "center"))
+    plot_kw.setdefault("ha", "center")
+    plot_kw.setdefault("va", "center")
+
+    # Optional halo via matplotlib path effects.
+    path_effects = None
+    if halo and hw and hw > 0:
+        from matplotlib import patheffects as _pe
+        path_effects = [
+            _pe.Stroke(linewidth=float(hw) * 2, foreground=hc),
+            _pe.Normal(),
+        ]
+
+    for i, lab in enumerate(label_strs):
+        artist = ax_.text(float(cx[i]), float(cy[i]), lab, **plot_kw)
+        if path_effects is not None:
+            artist.set_path_effects(path_effects)
+
     return ax_
