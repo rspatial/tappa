@@ -949,6 +949,12 @@ PYBIND11_MODULE(_terra, m) {
         .def(py::init<std::string, std::vector<int>, bool,
                       std::vector<std::string>, bool, bool,
                       std::vector<std::string>>())
+        .def(py::init<std::vector<std::string>, std::vector<std::string>,
+                      bool, bool, std::vector<std::string>, bool>(),
+             py::arg("fnames"), py::arg("options") = std::vector<std::string>{},
+             py::arg("noflip") = false, py::arg("guessCRS") = true,
+             py::arg("domains") = std::vector<std::string>{},
+             py::arg("group") = false)
         .def_property("names",
             &SpatRasterCollection::get_names,
             &SpatRasterCollection::set_names)

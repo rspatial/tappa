@@ -231,12 +231,14 @@ def _cats_to_dict(cats_obj: Any) -> Tuple[List[float], List[str]]:
 
     Returns a list of numeric IDs and a parallel list of label strings.
     """
-    df = cats_obj.d
+    df = cats_obj.df
     # SpatDataFrame columns come back as a dict-like; try common key patterns
     try:
         ids = list(df.get_column(0))
         label_col = cats_obj.index if hasattr(cats_obj, "index") else 1
-        labels = [str(v) for v in df.get_column(label_col)]
+        # cats_obj.index is 0-based offset *past* the id column, so the actual
+        # column position is label_col + 1.
+        labels = [str(v) for v in df.get_column(int(label_col) + 1)]
     except Exception:
         ids, labels = [], []
     return ids, labels
