@@ -8,8 +8,8 @@ import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
-from tappa.cells import xy_from_cell
+from tappa.values import setValues
+from tappa.cells import xyFromCell
 
 
 def make_r3():
@@ -18,7 +18,7 @@ def make_r3():
     and r/2 and r*2 as the second and third layers.
     """
     r = rast(nrows=10, ncols=20, xmin=-10, xmax=10, ymin=-5, ymax=6)
-    r = set_values(r, list(range(200, 0, -1)))
+    r = setValues(r, list(range(200, 0, -1)))
     r2 = r * 2
     r_half = r / 2      # Python operator via arith.py
     # Note: r2 is r*2, r_half is r/2 — but we need r, r/2, r*2 as layers
@@ -53,7 +53,7 @@ def test_extent():
 def test_xy_from_cell_10():
     """0-based cell 9 (same location as R / terra cell 10) → x=-0.5, y=5.45."""
     r = make_r3()
-    xy = xy_from_cell(r, 9)
+    xy = xyFromCell(r, 9)
     assert xy[0][0] == pytest.approx(-0.5)
     assert xy[0][1] == pytest.approx(5.45)
 
@@ -61,7 +61,7 @@ def test_xy_from_cell_10():
 def test_xy_from_cell_1():
     """First cell (0-based index 0, top-left centre) → x=-9.5, y=5.45."""
     r = make_r3()
-    xy = xy_from_cell(r, 0)
+    xy = xyFromCell(r, 0)
     assert xy[0][0] == pytest.approx(-9.5)
     assert xy[0][1] == pytest.approx(5.45)
 
@@ -70,7 +70,7 @@ def test_xy_from_cell_last():
     """Last cell → x=9.5, y=-4.45."""
     r = make_r3()
     ncell = r.ncell()
-    xy = xy_from_cell(r, ncell - 1)
+    xy = xyFromCell(r, ncell - 1)
     assert xy[0][0] == pytest.approx(9.5)
     assert xy[0][1] == pytest.approx(-4.45, rel=1e-4)
 
@@ -80,7 +80,7 @@ def test_xy_from_cell_out_of_bounds():
     r = make_r3()
     ncell = r.ncell()
     for bad_cell in (-1, ncell):
-        xy = xy_from_cell(r, bad_cell)
+        xy = xyFromCell(r, bad_cell)
         # Out-of-range 0-based indices; check coords are NaN or extreme.
         x_coord = float(xy[0][0])
         y_coord = float(xy[0][1])

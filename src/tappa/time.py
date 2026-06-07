@@ -9,7 +9,7 @@ from ._terra import SpatRaster
 
 
 # ---------------------------------------------------------------------------
-# has_time / time_info
+# has_time / timeInfo
 # ---------------------------------------------------------------------------
 
 def has_time(x: SpatRaster) -> bool:
@@ -17,7 +17,7 @@ def has_time(x: SpatRaster) -> bool:
     return bool(x.hasTime)
 
 
-def time_info(x: SpatRaster) -> dict:
+def timeInfo(x: SpatRaster) -> dict:
     """
     Return a dict describing the time metadata of *x*.
 
@@ -40,7 +40,7 @@ def time_info(x: SpatRaster) -> dict:
 # get time
 # ---------------------------------------------------------------------------
 
-def get_time(
+def getTime(
     x: SpatRaster,
     format: str = "",
 ) -> Union[List[datetime], List[date], List[float], List[int]]:
@@ -113,7 +113,7 @@ def get_time(
 # set time
 # ---------------------------------------------------------------------------
 
-def set_time(
+def setTime(
     x: SpatRaster,
     value: Optional[Union[List, None]],
     tstep: str = "",

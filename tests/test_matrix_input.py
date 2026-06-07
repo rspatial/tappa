@@ -1,13 +1,13 @@
 """
 Tests ported from inst/tinytest/test_matrix-input.R
 
-Creates rasters from numpy arrays using rast() + set_values().
+Creates rasters from numpy arrays using rast() + setValues().
 """
 import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa._terra import SpatRaster
 
 
@@ -33,7 +33,7 @@ def make_from_matrix(m, extent=None):
 
     r = rast(nrows=nrows, ncols=ncols, nlyrs=nlyrs,
              xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax)
-    r = set_values(r, flat)
+    r = setValues(r, flat)
     return r
 
 

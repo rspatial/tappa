@@ -10,7 +10,7 @@ import numpy as np
 
 from ._terra import SpatOptions, SpatRaster
 from ._helpers import messages
-from .levels import active_cat, cats, is_factor
+from .levels import activeCat, cats, is_factor
 
 
 def _freq_apply_factor_labels(x: SpatRaster, df: "pd.DataFrame") -> "pd.DataFrame":
@@ -29,7 +29,7 @@ def _freq_apply_factor_labels(x: SpatRaster, df: "pd.DataFrame") -> "pd.DataFram
         mask = out["layer"] == f
         if not mask.any():
             continue
-        ac = active_cat(x, f)
+        ac = activeCat(x, f)
         code_col = cg.columns[0]
         lab_col = cg.columns[min(ac, len(cg.columns) - 1)]
         for idx in out.loc[mask].index:

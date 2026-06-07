@@ -1,7 +1,7 @@
 """
 methods.py — register high-level Python functions as methods on the C++ types.
 
-After :func:`register_methods` is called (done once at import time by
+After :func:`registerMethods` is called (done once at import time by
 ``terra/__init__.py``), the Python-level functions from ``generics.py``,
 ``values.py``, ``cells.py``, etc. are accessible directly on objects:
 
@@ -9,7 +9,7 @@ After :func:`register_methods` is called (done once at import time by
     r.mask(mask_r)      # instead of terra.mask(r, mask_r)
     r.values()          # instead of terra.values(r)
     r.aggregate(2)      # instead of terra.aggregate(r, 2)
-    v.buffer(1000)      # instead of terra.buffer_vect(v, 1000)
+    v.buffer(1000)      # instead of terra.bufferVect(v, 1000)
     e.intersect(e2)     # SpatExtent.intersect is already C++; this is the Python alias
 
 Only the **Python-level** wrappers are registered here.  The raw C++ methods
@@ -21,7 +21,7 @@ from __future__ import annotations
 from ._terra import SpatRaster, SpatVector, SpatExtent
 
 
-def register_methods() -> None:
+def registerMethods() -> None:
     """
     Attach high-level Python functions as methods on SpatRaster, SpatVector,
     and SpatExtent.
@@ -36,28 +36,28 @@ def register_methods() -> None:
     # ── SpatRaster methods ────────────────────────────────────────────────────
 
     from .generics import (
-        crop, mask as mask_rast, resample, project_raster,
-        classify, subst, clamp, clamp_ts, cover, diff_raster,
+        crop, mask as mask_rast, resample, projectRaster,
+        classify, subst, clamp, clampTS, cover, diffRaster,
         boundaries, patches, cellSize, surfArea, terrain,
-        sieve, stretch, scale_linear, scale_raster,
-        trim, flip, rotate, shift, rescale, rev_raster, sort_raster,
-        disagg, segregate, selectRange, range_fill, weighted_mean,
-        quantile_raster, atan_2,
+        sieve, stretch, scaleLinear, scaleRaster,
+        trim, flip, rotate, shift, rescale, revRaster, sortRaster,
+        disagg, segregate, selectRange, rangeFill, weightedMean,
+        quantileRaster, atan_2,
     )
     from .values import (
-        values, set_values, focal_values,
+        values, setValues, focalValues,
         has_values, in_memory, sources,
-        has_min_max, min_max, set_min_max, compare_geom,
+        has_min_max, minMax, setMinMax, compareGeom,
     )
     from .cells import (
-        cells, cell_from_xy, cell_from_row_col,
-        xy_from_cell, row_col_from_cell,
-        row_from_y, col_from_x,
+        cells, cellFromXY, cellFromRowCol,
+        xyFromCell, rowColFromCell,
+        rowFromY, colFromX,
     )
     from .aggregate import aggregate
-    from .focal import focal, focal3D, focal_mat
+    from .focal import focal, focal3D, focalMat
     from .zonal import zonal
-    from .flow_accumulation import flow_accumulation
+    from .flowAccumulation import flowAccumulation
     from .pitfinder import pitfinder
     from .extract import extract
     from .app import app, lapp, tapp, sapp
@@ -67,37 +67,37 @@ def register_methods() -> None:
         cumsum, cumprod, cummax, cummin,
         ifel,
     )
-    from .distance import distance_rast, cost_dist, grid_dist
+    from .distance import distanceRast, costDist, gridDist
     from .rasterize import rasterize
-    from .sample import spat_sample
-    from .window import has_window, set_window, remove_window, extend
+    from .sample import spatSample
+    from .window import has_window, setWindow, removeWindow, extend
     from .init import init
     from .arith import (
         is_na, not_na, any_na, all_na, no_na, count_na,
         is_nan, is_finite, is_infinite,
-        which_max, which_min, which_lyr,
-        where_max, where_min,
+        whichMax, whichMin, whichLyr,
+        whereMax, whereMin,
         rast_sum, rast_mean, rast_min, rast_max,
-        rast_median, rast_modal, stdev_rast,
-        compare_rast,
+        rast_median, rast_modal, stdevRast,
+        compareRast,
     )
     from .levels import (
-        is_factor, as_factor,
-        levels, set_levels,
-        cats, set_cats, drop_levels, catalyze,
-        has_colors, coltab, set_coltab,
+        is_factor, asFactor,
+        levels, setLevels,
+        cats, setCats, dropLevels, catalyze,
+        has_colors, coltab, setColtab,
     )
     from .names import (
-        names_rast, set_names_rast, set_names_inplace,
-        varnames, set_varnames, longnames, set_longnames,
+        namesRast, setNamesRast, setNamesInplace,
+        varnames, setVarnames, longnames, setLongnames,
     )
-    from .time import has_time, time_info, get_time, set_time
-    from .write import write_raster, update
-    from .stats import row_sums, col_sums, row_means, col_means, autocor, layer_cor
-    from .merge import merge as merge_rast, mosaic
-    from .coerce import as_polygons, as_lines, as_points, as_array, as_matrix, as_data_frame
-    from .plot import plot, plot_rgb
-    from .tile_apply import tile_apply, get_tile_extents, make_tiles
+    from .time import has_time, timeInfo, getTime, setTime
+    from .write import writeRaster, update
+    from .stats import rowSums, colSums, rowMeans, colMeans, autocor, layerCor
+    from .merge import merge as mergeRast, mosaic
+    from .coerce import asPolygons, asLines, asPoints, asArray, asMatrix, asDataFrame
+    from .plot import plot, plotRGB
+    from .tileApply import tileApply, getTileExtents, makeTiles
 
     _rast_methods = {
         # extent (R-style; backed by SpatExtent.vector = xmin, xmax, ymin, ymax)
@@ -109,21 +109,21 @@ def register_methods() -> None:
         "crop":           lambda self, y, **kw: crop(self, y, **kw),
         "mask":           lambda self, m, **kw: mask_rast(self, m, **kw),
         "resample":       lambda self, y, **kw: resample(self, y, **kw),
-        "project":        lambda self, crs, **kw: project_raster(self, crs, **kw),
+        "project":        lambda self, crs, **kw: projectRaster(self, crs, **kw),
         "trim":           lambda self, **kw: trim(self, **kw),
         "flip":           lambda self, **kw: flip(self, **kw),
         "rotate":         lambda self, **kw: rotate(self, **kw),
         "shift":          lambda self, **kw: shift(self, **kw),
-        "rev":            lambda self, **kw: rev_raster(self, **kw),
+        "rev":            lambda self, **kw: revRaster(self, **kw),
         "aggregate":      lambda self, fact, fun="mean", **kw: aggregate(self, fact, fun, **kw),
         "disagg":         lambda self, fact, **kw: disagg(self, fact, **kw),
         # values
         "values":         lambda self: values(self),
-        "set_values":     lambda self, v: set_values(self, v),
-        "focal_values":   lambda self, w=3, **kw: focal_values(self, w, **kw),
+        "setValues":     lambda self, v: setValues(self, v),
+        "focalValues":   lambda self, w=3, **kw: focalValues(self, w, **kw),
         "has_values":     lambda self: has_values(self),
         "in_memory":      lambda self: in_memory(self),
-        "min_max":        lambda self: min_max(self),
+        "minMax":        lambda self: minMax(self),
         # classification / recoding
         "classify":       lambda self, rcl, **kw: classify(self, rcl, **kw),
         "subst":          lambda self, from_v, to_v, **kw: subst(self, from_v, to_v, **kw),
@@ -133,7 +133,7 @@ def register_methods() -> None:
         "boundaries":     lambda self, **kw: boundaries(self, **kw),
         "patches":        lambda self, **kw: patches(self, **kw),
         "terrain":        lambda self, v="slope", **kw: terrain(self, v, **kw),
-        "flow_accumulation": lambda self, weight=None, **kw: flow_accumulation(
+        "flowAccumulation": lambda self, weight=None, **kw: flowAccumulation(
             self, weight=weight, **kw
         ),
         "pitfinder":    lambda self, **kw: pitfinder(self, **kw),
@@ -148,8 +148,8 @@ def register_methods() -> None:
         "rasterize":      lambda self, v, **kw: rasterize(v, self, **kw),
         # cells / coordinates
         "cells":          lambda self, y=None, **kw: cells(self, y, **kw),
-        "xy_from_cell":   lambda self, cell: xy_from_cell(self, cell),
-        "cell_from_xy":   lambda self, xy: cell_from_xy(self, xy),
+        "xyFromCell":   lambda self, cell: xyFromCell(self, cell),
+        "cellFromXY":   lambda self, xy: cellFromXY(self, xy),
         # math
         "log":            lambda self, base=None: log(self) if base is None else log(self, base),
         "sqrt":           lambda self: sqrt(self),
@@ -168,61 +168,67 @@ def register_methods() -> None:
         "mean":           lambda self, na_rm=False: rast_mean(self, na_rm=na_rm),
         "min":            lambda self, na_rm=False: rast_min(self, na_rm=na_rm),
         "max":            lambda self, na_rm=False: rast_max(self, na_rm=na_rm),
-        "sd":             lambda self, na_rm=False: stdev_rast(self, na_rm=na_rm),
+        "sd":             lambda self, na_rm=False: stdevRast(self, na_rm=na_rm),
         # levels / categories
         "levels":         lambda self: levels(self),
-        "set_levels":     lambda self, v: set_levels(self, v),
+        "setLevels":     lambda self, v: setLevels(self, v),
         "cats":           lambda self: cats(self),
         "is_factor":      lambda self: is_factor(self),
-        "as_factor":      lambda self: as_factor(self),
+        "asFactor":      lambda self: asFactor(self),
         "catalyze":       lambda self: catalyze(self),
         # names
-        "names_rast":     lambda self: names_rast(self),
+        "namesRast":     lambda self: namesRast(self),
         # time
         "has_time":       lambda self: has_time(self),
-        "get_time":       lambda self: get_time(self),
-        "set_time":       lambda self, v, **kw: set_time(self, v, **kw),
+        "getTime":       lambda self: getTime(self),
+        "setTime":       lambda self, v, **kw: setTime(self, v, **kw),
         # write / update
-        "write":          lambda self, filename, **kw: write_raster(self, filename, **kw),
+        "write":          lambda self, filename, **kw: writeRaster(self, filename, **kw),
         "update":         lambda self, **kw: update(self, **kw),
         # stats
         "autocor":        lambda self, **kw: autocor(self, **kw),
-        "layer_cor":      lambda self, fun="cor", **kw: layer_cor(self, fun, **kw),
-        "row_sums":       lambda self, **kw: row_sums(self, **kw),
-        "col_sums":       lambda self, **kw: col_sums(self, **kw),
+        "layerCor":      lambda self, fun="cor", **kw: layerCor(self, fun, **kw),
+        "rowSums":       lambda self, **kw: rowSums(self, **kw),
+        "colSums":       lambda self, **kw: colSums(self, **kw),
         # merge
-        "merge":          lambda self, *others, **kw: merge_rast(self, *others, **kw),
+        "merge":          lambda self, *others, **kw: mergeRast(self, *others, **kw),
         "mosaic":         lambda self, *others, **kw: mosaic(self, *others, **kw),
         # sampling
-        "sample":         lambda self, size, **kw: spat_sample(self, size, **kw),
+        "sample":         lambda self, size, **kw: spatSample(self, size, **kw),
         # window
         "window":         lambda self: has_window(self),
-        "set_window":     lambda self, e: set_window(self, e),
-        "remove_window":  lambda self: remove_window(self),
+        "setWindow":     lambda self, e: setWindow(self, e),
+        "removeWindow":  lambda self: removeWindow(self),
         "extend":         lambda self, y, **kw: extend(self, y, **kw),
         # coerce
-        "as_polygons":    lambda self, **kw: as_polygons(self, **kw),
-        "as_points":      lambda self, **kw: as_points(self, **kw),
-        "as_array":       lambda self, **kw: as_array(self, **kw),
-        "as_matrix":      lambda self, **kw: as_matrix(self, **kw),
-        "as_data_frame":  lambda self, **kw: as_data_frame(self, **kw),
+        "asPolygons":    lambda self, **kw: asPolygons(self, **kw),
+        "asPoints":      lambda self, **kw: asPoints(self, **kw),
+        "asArray":       lambda self, **kw: asArray(self, **kw),
+        "asMatrix":      lambda self, **kw: asMatrix(self, **kw),
+        "asDataFrame":  lambda self, **kw: asDataFrame(self, **kw),
         # plot
         "plot":           lambda self, **kw: plot(self, **kw),
-        "plot_rgb":       lambda self, **kw: plot_rgb(self, **kw),
+        "plotRGB":       lambda self, **kw: plotRGB(self, **kw),
         # tiles
-        "tile_apply":      lambda self, fun, cores=1, **kw: tile_apply(self, fun, cores, **kw),
-        "get_tile_extents": lambda self, y=None, **kw: get_tile_extents(self, y, **kw),
-        "make_tiles":      lambda self, y, **kw: make_tiles(self, y, **kw),
+        "tileApply":      lambda self, fun, cores=1, **kw: tileApply(self, fun, cores, **kw),
+        "getTileExtents": lambda self, y=None, **kw: getTileExtents(self, y, **kw),
+        "makeTiles":      lambda self, y, **kw: makeTiles(self, y, **kw),
     }
 
     # Methods to always register (Python wrappers that supersede the C++ raw method).
+    # NOTE: after the camelCase rename some Python wrappers gained the same name
+    # as the C++ pybind binding (setValues, asPolygons, asPoints, asLines,
+    # asFactor, makeTiles, …). Forcing the override here used to cause infinite
+    # recursion (the wrapper called e.g. ``y.setValues(...)``, which dispatched
+    # back through the lambda). Names that exist as C++ methods are now left
+    # alone — use ``pt.setValues(r, v)``, ``pt.asPolygons(r)``, etc. for the
+    # Python wrapper conveniences (broadcasting, kwarg defaults).
     _rast_force = {
-        "crop", "mask", "classify", "values", "set_values",
+        "crop", "mask", "classify", "values",
         "aggregate", "focal", "zonal", "extract", "app", "lapp", "tapp", "sapp",
-        "merge", "mosaic", "write", "plot", "plot_rgb",
-        "levels", "cats", "is_factor", "as_factor",
+        "merge", "mosaic", "write", "plot",
+        "levels", "cats", "is_factor",
         "is_na", "not_na", "sum", "mean", "min", "max",
-        "make_tiles", "get_tile_extents",
     }
     for name, fn in _rast_methods.items():
         if name in _rast_force or not hasattr(SpatRaster, name):
@@ -231,49 +237,49 @@ def register_methods() -> None:
     # ── SpatVector methods ────────────────────────────────────────────────────
 
     from .generics import (
-        project_vector, shift_vect, rotate_vect, rescale_vect, trans_vect,
+        projectVector, shiftVect, rotateVect, rescaleVect, transVect,
     )
     from .geom import (
-        is_valid, make_valid,
-        union_vect, intersect_vect, erase, symdif, cover_vect,
-        crop_vect, mask_vect,
-        buffer_vect, disagg_vect, flip_vect, spin,
+        is_valid, makeValid,
+        unionVect, intersectVect, erase, symdif, coverVect,
+        cropVect, maskVect,
+        bufferVect, disaggVect, flipVect, spin,
         hull, delaunay, voronoi,
-        simplify_geom, thin_nodes, thin, gaps,
+        simplifyGeom, thinNodes, thin, gaps,
         is_empty,
     )
-    from .distance import distance_vect_self, distance_vect
+    from .distance import distanceVectSelf, distanceVect
     from .spatvec import (
         geomtype, is_lines, is_polygons, is_points,
         geom, crds,
         expanse, perim, nseg,
-        fill_holes, vect_as_df, geom_as_wkt,
+        fillHoles, vectAsDF, geomAsWkt,
     )
-    from .relate import is_related, relate, relate_self
+    from .relate import is_related, relate, relateSelf
     from .rasterize import rasterize as rasterize_fn
     from .extract import extract as extract_fn
-    from .merge import merge_vect
-    from .write import write_vector
-    from .names import names_vect, set_names_vect
+    from .merge import mergeVect
+    from .write import writeVector
+    from .names import namesVect, setNamesVect
 
     _vect_methods = {
-        "project":        lambda self, crs, **kw: project_vector(self, crs, **kw),
-        "crop":           lambda self, y, **kw: crop_vect(self, y, **kw),
-        "mask":           lambda self, m, **kw: mask_vect(self, m, **kw),
-        "buffer":         lambda self, width, **kw: buffer_vect(self, width, **kw),
+        "project":        lambda self, crs, **kw: projectVector(self, crs, **kw),
+        "crop":           lambda self, y, **kw: cropVect(self, y, **kw),
+        "mask":           lambda self, m, **kw: maskVect(self, m, **kw),
+        "buffer":         lambda self, width, **kw: bufferVect(self, width, **kw),
         "hull":           lambda self, **kw: hull(self, **kw),
         "voronoi":        lambda self, **kw: voronoi(self, **kw),
         "delaunay":       lambda self, **kw: delaunay(self, **kw),
-        "simplify":       lambda self, tol, **kw: simplify_geom(self, tol, **kw),
-        "thin_nodes":     lambda self, threshold=1e-6, **kw: thin_nodes(self, threshold, **kw),
+        "simplify":       lambda self, tol, **kw: simplifyGeom(self, tol, **kw),
+        "thinNodes":     lambda self, threshold=1e-6, **kw: thinNodes(self, threshold, **kw),
         "thin":           lambda self, d, **kw: thin(self, d, **kw),
         "is_valid":       lambda self: is_valid(self),
-        "make_valid":     lambda self: make_valid(self),
+        "makeValid":     lambda self: makeValid(self),
         "is_empty":       lambda self: is_empty(self),
-        "union":          lambda self, y=None, **kw: union_vect(self, y, **kw),
-        "intersect":      lambda self, y, **kw: intersect_vect(self, y, **kw),
+        "union":          lambda self, y=None, **kw: unionVect(self, y, **kw),
+        "intersect":      lambda self, y, **kw: intersectVect(self, y, **kw),
         "erase":          lambda self, y, **kw: erase(self, y, **kw),
-        "disagg":         lambda self, **kw: disagg_vect(self, **kw),
+        "disagg":         lambda self, **kw: disaggVect(self, **kw),
         "spin":           lambda self, angle, **kw: spin(self, angle, **kw),
         "gaps":           lambda self, **kw: gaps(self, **kw),
         "expanse":        lambda self, **kw: expanse(self, **kw),
@@ -281,16 +287,16 @@ def register_methods() -> None:
         "geomtype":       lambda self: geomtype(self),
         "crds":           lambda self, **kw: crds(self, **kw),
         "geom":           lambda self, **kw: geom(self, **kw),
-        "as_df":          lambda self: vect_as_df(self),
-        "as_wkt":         lambda self: geom_as_wkt(self),
+        "as_df":          lambda self: vectAsDF(self),
+        "as_wkt":         lambda self: geomAsWkt(self),
         "relate":         lambda self, y, relation, **kw: relate(self, y, relation, **kw),
         "is_related":     lambda self, y, relation, **kw: is_related(self, y, relation, **kw),
-        "distance":       lambda self, **kw: distance_vect_self(self, **kw),
+        "distance":       lambda self, **kw: distanceVectSelf(self, **kw),
         "rasterize":      lambda self, r, **kw: rasterize_fn(self, r, **kw),
         "extract":        lambda self, r, **kw: extract_fn(r, self, **kw),
-        "merge":          lambda self, y, **kw: merge_vect(self, y, **kw),
-        "write":          lambda self, filename, **kw: write_vector(self, filename, **kw),
-        "names":          lambda self: names_vect(self),
+        "merge":          lambda self, y, **kw: mergeVect(self, y, **kw),
+        "write":          lambda self, filename, **kw: writeVector(self, filename, **kw),
+        "names":          lambda self: namesVect(self),
     }
 
     _vect_force = {

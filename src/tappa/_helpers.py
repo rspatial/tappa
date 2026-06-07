@@ -5,7 +5,7 @@ from __future__ import annotations
 import warnings
 from typing import Any, Union
 
-__all__ = ["messages", "character_crs", "_getSpatDF", "_makeSpatDF", "spatoptions"]
+__all__ = ["messages", "characterCRS", "_getSpatDF", "_makeSpatDF", "spatoptions"]
 
 
 def spatoptions(filename: str = "", overwrite: bool = False) -> "Any":
@@ -113,9 +113,9 @@ def _makeSpatDF(df: "pd.DataFrame") -> Any:
     return sdf
 
 
-def character_crs(x: Union[str, Any], _caller: str = "") -> str:
+def characterCRS(x: Union[str, Any], _caller: str = "") -> str:
     """
-    Normalise a CRS string similarly to R's ``character_crs`` (subset).
+    Normalise a CRS string similarly to R's ``characterCRS`` (subset).
     """
     if x is None:
         return ""
@@ -124,7 +124,7 @@ def character_crs(x: Union[str, Any], _caller: str = "") -> str:
     else:
         # Another object with crs — use get_crs if present
         if hasattr(x, "get_crs"):
-            return character_crs(x.get_crs("wkt"), _caller)
+            return characterCRS(x.get_crs("wkt"), _caller)
         s = str(x)
 
     if not s or s.lower() == "nan":

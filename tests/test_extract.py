@@ -7,9 +7,9 @@ import pytest
 import tappa as pt
 from tappa.rast import rast
 from tappa.vect import vect
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.extract import extract
-from tappa.cells import cell_from_xy, cells
+from tappa.cells import cellFromXY, cells
 
 from path_utils import skip_if_missing_inst_ex
 
@@ -25,7 +25,7 @@ def find_file(name):
 def make_small():
     np.random.seed(500)
     r = rast(nrows=3, ncols=3, nlyrs=2, xmin=0, xmax=3, ymin=0, ymax=3)
-    return set_values(r, np.random.uniform(size=18))
+    return setValues(r, np.random.uniform(size=18))
 
 
 def test_extract_points_no_id():

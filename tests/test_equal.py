@@ -8,14 +8,14 @@ import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 
 
 def make_r1():
     """10×10 raster with sqrt(1:100) values (row-major fill)."""
     x = np.sqrt(np.arange(1, 101, dtype=float))
     r = rast(nrows=10, ncols=10, xmin=0)
-    return set_values(r, x)
+    return setValues(r, x)
 
 
 def make_r2():
@@ -23,7 +23,7 @@ def make_r2():
     x = np.sqrt(np.arange(1, 101, dtype=float))
     mat_col_major = x.reshape(10, 10, order="F")
     r = rast(nrows=10, ncols=10, xmin=0)
-    return set_values(r, mat_col_major.ravel(order="C"))
+    return setValues(r, mat_col_major.ravel(order="C"))
 
 
 def _read_vals(r):

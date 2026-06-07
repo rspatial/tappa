@@ -140,7 +140,7 @@ def mosaic(
 # Vector attribute table join
 # ---------------------------------------------------------------------------
 
-def merge_vect(
+def mergeVect(
     x: Union[SpatVector, List[SpatVector]],
     y: Optional[Union["pd.DataFrame", SpatVector]] = None,
     *more: SpatVector,
@@ -174,7 +174,7 @@ def merge_vect(
         items = list(x)
         if y is not None or more:
             raise TypeError(
-                "merge_vect: when x is a list of SpatVectors, no extra "
+                "mergeVect: when x is a list of SpatVectors, no extra "
                 "positional arguments are allowed"
             )
     elif isinstance(y, SpatVector) or any(isinstance(m, SpatVector) for m in more):
@@ -184,20 +184,20 @@ def merge_vect(
 
     if items is not None:
         if not items:
-            raise ValueError("merge_vect: no SpatVectors to combine")
+            raise ValueError("mergeVect: no SpatVectors to combine")
         out = items[0].deepcopy()
         for v in items[1:]:
             out = out.append(v, True)
-        return messages(out, "merge_vect")
+        return messages(out, "mergeVect")
 
     try:
         import pandas as pd
     except ImportError:
-        raise ImportError("pandas is required for merge_vect()")
+        raise ImportError("pandas is required for mergeVect()")
     from ._helpers import _getSpatDF, _makeSpatDF
 
     if y is None:
-        raise TypeError("merge_vect: missing argument 'y' (DataFrame or SpatVector)")
+        raise TypeError("mergeVect: missing argument 'y' (DataFrame or SpatVector)")
 
     v = _getSpatDF(x.df)
     if v is None:

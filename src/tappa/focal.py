@@ -19,7 +19,7 @@ def _opt() -> SpatOptions:
 # focal matrix helpers
 # ---------------------------------------------------------------------------
 
-def focal_mat(
+def focalMat(
     type_: str = "circle",
     r: Union[float, List[float]] = 1,
     lp: float = 2.0,

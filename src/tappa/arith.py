@@ -1,7 +1,7 @@
 """
 Arithmetic, comparison, logical, and NA/summary operators for terra objects.
 
-Operator overloads are registered at import time via :func:`register_operators`.
+Operator overloads are registered at import time via :func:`registerOperators`.
 
 **SpatRaster** supports: ``+  -  *  /  //  %  **`` (cell-wise, with another
 SpatRaster, a scalar, a list of scalars, or a 2-D NumPy array);
@@ -29,18 +29,18 @@ __all__ = [
     "is_nan", "is_finite", "is_infinite",
     "any_na", "all_na", "no_na", "count_na",
     # summaries
-    "which_max", "which_min", "which_lyr",
-    "where_max", "where_min",
+    "whichMax", "whichMin", "whichLyr",
+    "whereMax", "whereMin",
     "rast_sum", "rast_mean", "rast_min", "rast_max",
     "rast_median", "rast_modal",
-    "stdev_rast",
+    "stdevRast",
     # compare / logic
-    "compare_rast", "logic_rast_fn",
+    "compareRast", "logicRastFn",
     # type coercion / queries
     "as_int_rast", "as_bool_rast",
     "is_bool_rast", "is_int_rast", "is_num_rast",
     # operator registration
-    "register_operators",
+    "registerOperators",
 ]
 
 
@@ -466,7 +466,7 @@ def global_(
     return messages(df, "global") if hasattr(df, "has_error") else df
 
 
-def which_max(x: SpatRaster) -> SpatRaster:
+def whichMax(x: SpatRaster) -> SpatRaster:
     """
     Return the layer index of the maximum value for each cell.
 
@@ -481,7 +481,7 @@ def which_max(x: SpatRaster) -> SpatRaster:
     return _rast_arith_numb(r, 1.0, "-", False)
 
 
-def which_min(x: SpatRaster) -> SpatRaster:
+def whichMin(x: SpatRaster) -> SpatRaster:
     """
     Return the layer index of the minimum value for each cell.
 
@@ -495,7 +495,7 @@ def which_min(x: SpatRaster) -> SpatRaster:
     return _rast_arith_numb(r, 1.0, "-", False)
 
 
-def which_lyr(x: SpatRaster) -> SpatRaster:
+def whichLyr(x: SpatRaster) -> SpatRaster:
     """
     Return the layer index of the first non-zero value for each cell.
 
@@ -509,7 +509,7 @@ def which_lyr(x: SpatRaster) -> SpatRaster:
     return _rast_arith_numb(r, 1.0, "-", False)
 
 
-def where_max(x: SpatRaster, values: bool = True) -> Any:
+def whereMax(x: SpatRaster, values: bool = True) -> Any:
     """
     Return the cell numbers for cells with the maximum value per layer.
 
@@ -527,7 +527,7 @@ def where_max(x: SpatRaster, values: bool = True) -> Any:
     return out
 
 
-def where_min(x: SpatRaster, values: bool = True) -> Any:
+def whereMin(x: SpatRaster, values: bool = True) -> Any:
     """
     Return the cell numbers for cells with the minimum value per layer.
 
@@ -640,7 +640,7 @@ def rast_median(x: SpatRaster, *args: Any, na_rm: bool = False,
     return _summarize(x, "median", na_rm, *args, filename=filename, **kw)
 
 
-def stdev_rast(x: SpatRaster, *args: Any, pop: bool = True,
+def stdevRast(x: SpatRaster, *args: Any, pop: bool = True,
                na_rm: bool = False, filename: str = "", **kw: Any) -> SpatRaster:
     """
     Compute the standard deviation across layers for each cell.
@@ -693,7 +693,7 @@ def rast_modal(x: SpatRaster, *args: Any, ties: str = "first",
 
 # ── Compare / logic ───────────────────────────────────────────────────────────
 
-def compare_rast(
+def compareRast(
     x: SpatRaster,
     y: Union[SpatRaster, float, int],
     oper: str,
@@ -726,7 +726,7 @@ def compare_rast(
     opt = _g_opt(filename, **kw)
     valid = {"==", "!=", ">", "<", ">=", "<="}
     if oper not in valid:
-        raise ValueError(f"compare_rast: oper must be one of {valid}")
+        raise ValueError(f"compareRast: oper must be one of {valid}")
     if isinstance(y, SpatRaster):
         r = x.arith_rast(y, oper, false_na, opt)
     else:
@@ -734,7 +734,7 @@ def compare_rast(
     return messages(r, oper)
 
 
-def logic_rast_fn(
+def logicRastFn(
     x: SpatRaster,
     oper: str,
     false_na: bool = False,
@@ -785,7 +785,7 @@ def logic_rast_fn(
     elif oper in mapping:
         r = x.is_wrapper(mapping[oper], false_na, opt)
     else:
-        raise ValueError(f"logic_rast_fn: unknown oper '{oper}'")
+        raise ValueError(f"logicRastFn: unknown oper '{oper}'")
     return messages(r, "logic")
 
 
@@ -881,7 +881,7 @@ def is_num_rast(x: SpatRaster) -> List[bool]:
 
 # ── Operator registration ─────────────────────────────────────────────────────
 
-def register_operators() -> None:
+def registerOperators() -> None:
     """
     Attach Python arithmetic, comparison, and logical operators to the C++ types.
 

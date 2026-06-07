@@ -17,7 +17,7 @@ def _opt() -> SpatOptions:
 # raster buffer
 # ---------------------------------------------------------------------------
 
-def buffer_rast(
+def bufferRast(
     x: SpatRaster,
     width: float,
     background: float = 0.0,
@@ -53,7 +53,7 @@ def buffer_rast(
 # raster distance
 # ---------------------------------------------------------------------------
 
-def distance_rast(
+def distanceRast(
     x: SpatRaster,
     y: Optional[SpatVector] = None,
     *,
@@ -115,7 +115,7 @@ def distance_rast(
     return messages(xc, "distance")
 
 
-def cost_dist(
+def costDist(
     x: SpatRaster,
     target: float = 0.0,
     scale: float = 1.0,
@@ -148,7 +148,7 @@ def cost_dist(
     return messages(xc, "costDist")
 
 
-def grid_dist(
+def gridDist(
     x: SpatRaster,
     target: Optional[float] = 0.0,
     scale: float = 1.0,
@@ -197,7 +197,7 @@ def _test_for_lonlat(xy: np.ndarray) -> bool:
     )
 
 
-def distance_xy(
+def distanceXY(
     x: np.ndarray,
     *,
     lonlat: Optional[bool] = None,
@@ -219,7 +219,7 @@ def distance_xy(
 
     m = np.asarray(x, dtype=float)
     if m.ndim != 2 or m.shape[1] != 2:
-        raise ValueError("distance_xy: x must be an array of shape (n, 2)")
+        raise ValueError("distanceXY: x must be an array of shape (n, 2)")
     if lonlat is None:
         lonlat = _test_for_lonlat(m)
     crs = (
@@ -228,7 +228,7 @@ def distance_xy(
         else "+proj=utm +zone=1 +datum=WGS84"
     )
     v = vect(m, crs=crs)
-    return distance_vect_self(
+    return distanceVectSelf(
         v,
         sequential=sequential,
         pairs=pairs,
@@ -239,7 +239,7 @@ def distance_xy(
     )
 
 
-def distance_vect_self(
+def distanceVectSelf(
     x: SpatVector,
     sequential: bool = False,
     pairs: bool = False,
@@ -280,7 +280,7 @@ def distance_vect_self(
     method = method.lower()
     if method not in ("cosine", "haversine", "geo"):
         raise ValueError(
-            "distance_vect_self: method must be 'geo', 'haversine', or 'cosine' "
+            "distanceVectSelf: method must be 'geo', 'haversine', or 'cosine' "
             f"(same as R distance(SpatVector)); got {method!r}"
         )
     opt = _opt()
@@ -314,7 +314,7 @@ def distance_vect_self(
     return mat
 
 
-def distance_vect(
+def distanceVect(
     x: SpatVector,
     y: SpatVector,
     pairwise: bool = False,
@@ -348,7 +348,7 @@ def distance_vect(
     return d_arr.reshape(x.nrow(), y.nrow())
 
 
-def distance_points(
+def distancePoints(
     x: np.ndarray,
     y: np.ndarray,
     lonlat: Optional[bool] = None,

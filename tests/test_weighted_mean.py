@@ -6,8 +6,8 @@ import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
-from tappa.generics import weighted_mean
+from tappa.values import setValues
+from tappa.generics import weightedMean
 
 
 def _vals(r):
@@ -21,11 +21,11 @@ def test_weighted_mean_matches_numpy():
     """
     # Build single-layer rasters with uniform values
     x = rast(nrows=10, ncols=10, xmin=0, xmax=10)
-    x = set_values(x, 1.0)
+    x = setValues(x, 1.0)
     y = rast(nrows=10, ncols=10, xmin=0, xmax=10)
-    y = set_values(y, 2.0)
+    y = setValues(y, 2.0)
     z = rast(nrows=10, ncols=10, xmin=0, xmax=10)
-    z = set_values(z, 3.0)
+    z = setValues(z, 3.0)
 
     # weights raster: layers with values 1, 2, 3
     opt = pt.SpatOptions()
@@ -42,7 +42,7 @@ def test_weighted_mean_matches_numpy():
     z_na.setValues(vals.tolist(), opt)
     xt.addSource(z_na, True, opt)
 
-    wm = weighted_mean(xt, wt, na_rm=True)
+    wm = weightedMean(xt, wt, na_rm=True)
     terra_wm = float(np.nanmin(_vals(wm)))
 
     # stats::weighted.mean(x=c(1,2,NA), w=1:3, na.rm=TRUE) = (1*1 + 2*2)/(1+2) = 5/3

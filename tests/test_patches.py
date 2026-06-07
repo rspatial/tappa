@@ -5,7 +5,7 @@ import math
 import numpy as np
 import pytest
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.generics import patches
 
 
@@ -19,7 +19,7 @@ def _vals(r):
 
 def test_patches_d8_zero_as_na():
     r = rast(nrows=2, ncols=2)
-    r = set_values(r, [0.0, 1.0, 1.0, 0.0])
+    r = setValues(r, [0.0, 1.0, 1.0, 0.0])
     p = patches(r, directions=8, zero_as_na=True)
     v = _vals(p)
     assert math.isnan(v[0]) and math.isnan(v[3])
@@ -29,7 +29,7 @@ def test_patches_d8_zero_as_na():
 
 def test_patches_d4_zero_as_na():
     r = rast(nrows=2, ncols=2)
-    r = set_values(r, [0.0, 1.0, 1.0, 0.0])
+    r = setValues(r, [0.0, 1.0, 1.0, 0.0])
     p = patches(r, directions=4, zero_as_na=True)
     v = _vals(p)
     assert math.isnan(v[0]) and math.isnan(v[3])
@@ -39,7 +39,7 @@ def test_patches_d4_zero_as_na():
 
 def test_patches_diagonal_d8():
     r = rast(nrows=2, ncols=2)
-    r = set_values(r, [1.0, 0.0, 0.0, 1.0])
+    r = setValues(r, [1.0, 0.0, 0.0, 1.0])
     p = patches(r, directions=8, zero_as_na=True)
     v = _vals(p)
     assert math.isnan(v[1]) and math.isnan(v[2])
@@ -49,7 +49,7 @@ def test_patches_diagonal_d8():
 
 def test_patches_diagonal_d4():
     r = rast(nrows=2, ncols=2)
-    r = set_values(r, [1.0, 0.0, 0.0, 1.0])
+    r = setValues(r, [1.0, 0.0, 0.0, 1.0])
     p = patches(r, directions=4, zero_as_na=True)
     v = _vals(p)
     assert math.isnan(v[1]) and math.isnan(v[2])
@@ -59,7 +59,7 @@ def test_patches_diagonal_d4():
 
 def test_patches_d4_zero_not_na():
     r = rast(nrows=2, ncols=2)
-    r = set_values(r, [1.0, 0.0, 0.0, 1.0])
+    r = setValues(r, [1.0, 0.0, 0.0, 1.0])
     p = patches(r, directions=4, zero_as_na=False)
     v = _vals(p)
     # All cells including zeros get a patch id (no NaN values)
@@ -77,7 +77,7 @@ def test_patches_larger_raster_d4():
     a[6:8, 0:6] = 12
     a[4:6, 21:36] = 13
     a[14:16, 17:29] = 14
-    r = set_values(r, a.ravel(order="C"))
+    r = setValues(r, a.ravel(order="C"))
     p = patches(r, directions=4)
     v = _vals(p)
     finite = v[~np.isnan(v)]
@@ -98,7 +98,7 @@ def test_patches_3x4_values_d4():
                   [1, 2, 2, 1],
                   [3, 3, 1, 1]], dtype=float)
     r = rast(nrows=3, ncols=4, xmin=0, xmax=4, ymin=0, ymax=3)
-    r = set_values(r, m.ravel(order="C"))
+    r = setValues(r, m.ravel(order="C"))
     try:
         p = patches(r, directions=4, values=True)
     except TypeError:
@@ -112,7 +112,7 @@ def test_patches_3x4_values_d8():
                   [1, 2, 2, 1],
                   [3, 3, 1, 1]], dtype=float)
     r = rast(nrows=3, ncols=4, xmin=0, xmax=4, ymin=0, ymax=3)
-    r = set_values(r, m.ravel(order="C"))
+    r = setValues(r, m.ravel(order="C"))
     try:
         p = patches(r, directions=8, values=True)
     except TypeError:

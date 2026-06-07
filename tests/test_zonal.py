@@ -9,7 +9,7 @@ import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.zonal import zonal
 
 try:
@@ -22,9 +22,9 @@ except ImportError:
 def make_vz():
     """2×2 rasters: v has a NA, z has zones 1 and 2."""
     v = rast(nrows=2, ncols=2)
-    v = set_values(v, [1.0, 2.0, 3.0, float("nan")])
+    v = setValues(v, [1.0, 2.0, 3.0, float("nan")])
     z = rast(nrows=2, ncols=2)
-    z = set_values(z, [1.0, 1.0, 2.0, 2.0])
+    z = setValues(z, [1.0, 1.0, 2.0, 2.0])
     return v, z
 
 

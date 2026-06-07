@@ -35,7 +35,7 @@ def _read_values_layer_matrix(x: SpatRaster) -> np.ndarray:
 # Row / column statistics
 # ---------------------------------------------------------------------------
 
-def row_sums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def rowSums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Sum of each row across columns, returned separately per layer.
 
@@ -57,7 +57,7 @@ def row_sums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     return np.sum(vals_3d, axis=1)
 
 
-def col_sums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def colSums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Sum of each column across rows, returned separately per layer.
 
@@ -79,7 +79,7 @@ def col_sums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     return np.sum(vals_3d, axis=0)
 
 
-def row_means(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def rowMeans(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Mean of each row across columns, returned separately per layer.
 
@@ -101,7 +101,7 @@ def row_means(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     return np.mean(vals_3d, axis=1)
 
 
-def col_means(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def colMeans(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Mean of each column across rows, returned separately per layer.
 
@@ -127,7 +127,7 @@ def col_means(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
 # match / is_in
 # ---------------------------------------------------------------------------
 
-def match_rast(
+def matchRast(
     x: SpatRaster,
     table: List,
     nomatch: float = float("nan"),
@@ -356,45 +356,129 @@ def _local_geary(
     return messages(_rast_arith_numb(e_ij, s2, "/"), "autocor")
 
 
+def _autocor_numeric(
+    x: np.ndarray, w: np.ndarray, method: str
+) -> Union[float, np.ndarray]:
+    """Numeric-vector overload of ``autocor`` (R ``autocor.numeric``).
+
+    Mirrors ``R/autocor.R`` lines 46–132 for a 1-D values vector and a
+    square weight matrix. Supports ``"moran"``, ``"geary"``, ``"gi"``,
+    ``"gi*"``, ``"locmor"``, ``"mean"``.
+    """
+    import warnings as _warnings
+    x = np.asarray(x, dtype=float).ravel()
+    w = np.asarray(w, dtype=float)
+    if w.ndim != 2 or w.shape[0] != w.shape[1] or w.shape[0] != x.size:
+        raise ValueError("autocor: w must be a square matrix with sides the size of x")
+    if np.any(np.isnan(w)):
+        raise ValueError("autocor: NA value(s) in the weight matrix")
+    n = x.size
+    if method in ("moran", "geary", "locmor", "gi"):
+        if np.any(np.diag(w) != 0):
+            _warnings.warn(
+                f"autocor: it is unexpected that a weight matrix for {method} "
+                "has diagonal values that are not zero"
+            )
+    elif method == "gi*":
+        if np.any(np.diag(w) == 0):
+            _warnings.warn(
+                "autocor: it is unexpected that a weight matrix for gi* has "
+                "diagonal values that are zero"
+            )
+
+    if method == "moran":
+        dx = x - np.nanmean(x)
+        pm = np.tile(dx, (n, 1)) * dx[:, None]
+        return (n / np.sum(dx ** 2)) * np.sum(pm * w) / np.sum(w)
+    if method == "geary":
+        dx = x - np.nanmean(x)
+        pm = (np.tile(dx, (n, 1)) - dx[:, None]) ** 2
+        return ((n - 1) / np.sum(dx ** 2)) * np.sum(w * pm) / (2 * np.sum(w))
+    if method == "locmor":
+        z = x - np.nanmean(x)
+        mp = z / (np.nansum(z ** 2) / n)
+        return mp * np.array([np.nansum(z * w[i, :]) for i in range(n)])
+    if method == "mean":
+        j = np.isnan(x)
+        x_ = x.copy()
+        x_[j] = 0.0
+        ww = w.copy()
+        ww[j, :] = 0.0
+        ww[:, j] = 0.0
+        m = np.array([np.sum(x_ * ww[i, :]) / np.sum(ww[i, :]) for i in range(n)])
+        m[j] = np.nan
+        return m
+    if method == "gi":
+        ww = w.copy()
+        np.fill_diagonal(ww, 0.0)
+        sumxminx = np.nansum(x) - x
+        Gi = np.sum(x[None, :] * ww, axis=1) / sumxminx
+        Ei = np.sum(ww, axis=1) / (n - 1)
+        xibar = sumxminx / (n - 1)
+        si2 = (np.sum(x ** 2) - x ** 2) / (n - 1) - xibar ** 2
+        VG = si2 * (((n - 1) * np.sum(ww ** 2, axis=1) - np.sum(ww, axis=1) ** 2) / (n - 2))
+        VG = VG / sumxminx ** 2
+        return (Gi - Ei) / np.sqrt(VG)
+    if method == "gi*":
+        Gi = np.sum(x[None, :] * w, axis=1) / np.sum(x)
+        Ei = np.sum(w, axis=1) / n
+        si2 = np.sum((x - x.mean()) ** 2) / n
+        VG = (si2 * ((n * np.sum(w ** 2, axis=1) - np.sum(w, axis=1) ** 2) / (n - 1))) / (np.sum(x) ** 2)
+        return (Gi - Ei) / np.sqrt(VG)
+    raise ValueError(f"autocor: unknown method {method!r}")
+
+
 def autocor(
-    x: SpatRaster,
+    x: Union[SpatRaster, "np.ndarray", list, tuple],
     w: Optional[Union[str, "np.ndarray"]] = None,
     global_: bool = True,
     method: str = "moran",
     filename: str = "",
     overwrite: bool = False,
-) -> Union[float, SpatRaster]:
+) -> Union[float, SpatRaster, "np.ndarray"]:
     """
     Compute spatial autocorrelation for *x*.
 
     Parameters
     ----------
-    x : SpatRaster
-        Single-layer raster.
+    x : SpatRaster or 1-D array-like
+        Single-layer raster, or a numeric vector of values (one per
+        spatial unit) — same dispatch as R ``terra::autocor`` over
+        ``signature(x="SpatRaster")`` and ``signature(x="numeric")``.
     w : str or array, optional
-        Weights matrix.  ``"queen"`` (8-neighbour, default), ``"rook"``
-        (4-neighbour), or a custom 2-D weight matrix.
+        For SpatRaster: ``"queen"``, ``"rook"`` or a 2-D weight matrix.
+        For numeric vectors: a square weight matrix (required).
     global_ : bool
         If True, return a scalar (global Moran's I or Geary's C).
         If False, return a local SpatRaster.
     method : str
-        ``"moran"`` (default) or ``"geary"``.
+        ``"moran"`` (default) or ``"geary"``. The numeric overload also
+        accepts ``"gi"``, ``"gi*"``, ``"locmor"`` and ``"mean"``.
     filename : str
     overwrite : bool
 
     Returns
     -------
-    float (global) or SpatRaster (local).
+    float (global) or SpatRaster (local) or numpy.ndarray (numeric overload).
     """
+    method = str(method).lower()
+
+    if not isinstance(x, SpatRaster):
+        if w is None:
+            raise ValueError("autocor: a weight matrix is required for vector input")
+        return _autocor_numeric(np.asarray(x), np.asarray(w), method)
+
     import warnings as _warnings
     if x.nlyr() > 1:
         _warnings.warn("autocor: only the first layer of x is used")
-        from .subset import subset_rast
-        x = subset_rast(x, 0)
+        from .subset import subsetRast
+        x = subsetRast(x, 0)
 
-    method = method.lower()
     if method not in ("moran", "geary"):
-        raise ValueError(f"method must be 'moran' or 'geary'; got {method!r}")
+        raise ValueError(
+            "autocor (SpatRaster): method must be 'moran' or 'geary'; "
+            f"got {method!r}"
+        )
 
     if global_:
         if method == "moran":
@@ -412,7 +496,7 @@ def autocor(
 # layerCor — layer-wise correlation matrix
 # ---------------------------------------------------------------------------
 
-def layer_cor(
+def layerCor(
     x: SpatRaster,
     fun: str = "pearson",
     *,

@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.focal import focal
 
 
@@ -21,7 +21,7 @@ def test_focal_asymmetric_weight_matrix():
     m[2, 1] = -1
     r = rast(nrows=3, ncols=3)
     r.setCRS("+proj=merc")
-    r = set_values(r, list(range(1, 10)))
+    r = setValues(r, list(range(1, 10)))
     f = focal(r, m, na_rm=True)
     expected = [-4, -5, -6, -6, -6, -6, 4, 5, 6]
     np.testing.assert_array_almost_equal(_vals(f), expected)
@@ -34,7 +34,7 @@ def test_focal_transposed_weight_matrix():
     m[2, 1] = -1
     r = rast(nrows=3, ncols=3)
     r.setCRS("+proj=merc")
-    r = set_values(r, list(range(1, 10)))
+    r = setValues(r, list(range(1, 10)))
     f = focal(r, m.T, na_rm=True)
     expected = [-2, -2, 2, -5, -2, 5, -8, -2, 8]
     np.testing.assert_array_almost_equal(_vals(f), expected)
@@ -48,7 +48,7 @@ def test_focal_sum_3x3_ones_na_rm():
     """
     m = np.ones((3, 3))
     r = rast(nrows=3, ncols=3)
-    r = set_values(r, list(range(1, 10)))
+    r = setValues(r, list(range(1, 10)))
     f = focal(r, m, na_rm=True)
     expected = [21, 21, 21, 45, 45, 45, 39, 39, 39]
     np.testing.assert_array_almost_equal(_vals(f), expected)
@@ -57,7 +57,7 @@ def test_focal_sum_3x3_ones_na_rm():
 def test_focal_sum_integer_window():
     """Integer window size 3 is equivalent to 3×3 ones kernel."""
     r = rast(nrows=3, ncols=3)
-    r = set_values(r, list(range(1, 10)))
+    r = setValues(r, list(range(1, 10)))
     expected = [21, 21, 21, 45, 45, 45, 39, 39, 39]
     f = focal(r, 3, na_rm=True)
     np.testing.assert_array_almost_equal(_vals(f), expected)
@@ -67,7 +67,7 @@ def test_focal_no_na_fillvalue():
     """na_rm=False but fillvalue=0 gives same result as na_rm=True for interior."""
     m = np.ones((3, 3))
     r = rast(nrows=3, ncols=3)
-    r = set_values(r, list(range(1, 10)))
+    r = setValues(r, list(range(1, 10)))
     f = focal(r, m, na_rm=False, fillvalue=0)
     expected = [21, 21, 21, 45, 45, 45, 39, 39, 39]
     np.testing.assert_array_almost_equal(_vals(f), expected)
@@ -83,7 +83,7 @@ def test_focal_no_na_edges_become_nan():
     m = np.ones((3, 3))
     r = rast(nrows=3, ncols=3)
     r.setCRS("+proj=merc")
-    r = set_values(r, list(range(1, 10)))
+    r = setValues(r, list(range(1, 10)))
     f = focal(r, m, na_rm=False)
     v = _vals(f)
     assert np.isnan(v[0]) and np.isnan(v[1]) and np.isnan(v[2])  # top row
@@ -96,7 +96,7 @@ def test_focal_integer_window_no_na_edges():
     m = np.ones((3, 3))
     r = rast(nrows=3, ncols=3)
     r.setCRS("+proj=merc")
-    r = set_values(r, list(range(1, 10)))
+    r = setValues(r, list(range(1, 10)))
     # focal(r, 3, na_rm=FALSE) should match focal(r, m, na_rm=FALSE)
     f1 = focal(r, m, na_rm=False)
     f2 = focal(r, 3, na_rm=False)

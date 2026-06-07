@@ -5,8 +5,8 @@ import numpy as np
 
 from tappa.rast import rast
 from tappa.extent import ext
-from tappa.values import set_values
-from tappa.generics import flow_accumulation, terrain
+from tappa.values import setValues
+from tappa.generics import flowAccumulation, terrain
 
 
 def test_flow_accumulation():
@@ -21,7 +21,7 @@ def test_flow_accumulation():
         74, 53, 34, 12, 11, 12,
     ]
     elev = rast(nrows=6, ncols=6, extent=ext(0, 6, 0, 6))
-    elev = set_values(elev, np.array(elev_vals, dtype=float))
+    elev = setValues(elev, np.array(elev_vals, dtype=float))
 
     flowdir_expected = [
         2, 2, 2, 4, 4, 8,
@@ -41,7 +41,7 @@ def test_flow_accumulation():
     ]
 
     flowdir1 = terrain(elev, "flowdir")
-    flowacc1 = flow_accumulation(flowdir1)
+    flowacc1 = flowAccumulation(flowdir1)
 
     fd_vals = np.array(flowdir1.readValues(0, flowdir1.nrow(), 0, flowdir1.ncol()))
     fa_vals = np.array(flowacc1.readValues(0, flowacc1.nrow(), 0, flowacc1.ncol()))

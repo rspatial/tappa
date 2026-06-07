@@ -5,7 +5,7 @@ from collections import Counter
 
 import numpy as np
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.generics import freq
 
 
@@ -14,7 +14,7 @@ class TestFreq:
         np.random.seed(2)
         r = rast(nrows=10, ncols=10)
         vals = np.random.choice(np.arange(1, 6), size=100)
-        self.r = set_values(r, vals.astype(float))
+        self.r = setValues(r, vals.astype(float))
         self.vals = vals
 
     def test_freq_returns_dataframe(self):

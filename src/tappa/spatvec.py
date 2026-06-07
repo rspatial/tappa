@@ -20,7 +20,7 @@ def _opt() -> SpatOptions:
 def geomtype(x: SpatVector) -> List[str]:
     """Return the geometry type of *x* as a one-element list: ``['points']``, ``['lines']``, or ``['polygons']``."""
     # Must use C++ ``type()``, not ``geomtype()`` — the latter is patched onto
-    # SpatVector by register_methods() and delegates back here (recursion).
+    # SpatVector by registerMethods() and delegates back here (recursion).
     return [x.type()]
 
 
@@ -215,7 +215,7 @@ def nseg(x: SpatVector) -> np.ndarray:
 # fill holes
 # ---------------------------------------------------------------------------
 
-def fill_holes(x: SpatVector, inverse: bool = False) -> SpatVector:
+def fillHoles(x: SpatVector, inverse: bool = False) -> SpatVector:
     """
     Fill interior holes in polygon geometries.
 
@@ -237,10 +237,10 @@ def fill_holes(x: SpatVector, inverse: bool = False) -> SpatVector:
 
 
 # ---------------------------------------------------------------------------
-# as_data_frame for SpatVector
+# asDataFrame for SpatVector
 # ---------------------------------------------------------------------------
 
-def vect_as_df(
+def vectAsDF(
     x: SpatVector,
     geom: Optional[str] = None,
 ) -> "pd.DataFrame":
@@ -261,7 +261,7 @@ def vect_as_df(
     try:
         import pandas as pd
     except ImportError:
-        raise ImportError("pandas is required for vect_as_df()")
+        raise ImportError("pandas is required for vectAsDF()")
 
     from ._helpers import _getSpatDF
     d = _getSpatDF(x.df)
@@ -277,10 +277,10 @@ def vect_as_df(
             d = pd.concat([d.reset_index(drop=True), xy.reset_index(drop=True)], axis=1)
         elif geom in ("WKT", "HEX"):
             d = d.copy()
-            d["geometry"] = geom_as_wkt(x) if geom == "WKT" else list(x.hex())
+            d["geometry"] = geomAsWkt(x) if geom == "WKT" else list(x.hex())
     return d
 
 
-def geom_as_wkt(x: SpatVector) -> List[str]:
+def geomAsWkt(x: SpatVector) -> List[str]:
     """Return WKT representation for each feature."""
     return list(x.getGeometryWKT())

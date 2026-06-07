@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any, List, Optional
 
-from ._helpers import character_crs, messages, _getSpatDF
+from ._helpers import characterCRS, messages, _getSpatDF
 
-__all__ = ["crs", "proj_pipelines"]
+__all__ = ["crs", "projPipelines"]
 
 
 def crs(x: Any, value: Optional[str] = None, *, proj4: bool = False) -> Any:
@@ -17,7 +17,7 @@ def crs(x: Any, value: Optional[str] = None, *, proj4: bool = False) -> Any:
     * ``crs(x, value)`` — set CRS from a string or another object; returns *x*.
     """
     if value is not None:
-        s = character_crs(value, "crs")
+        s = characterCRS(value, "crs")
         x.set_crs(s)
         return messages(x, "crs")
 
@@ -25,7 +25,7 @@ def crs(x: Any, value: Optional[str] = None, *, proj4: bool = False) -> Any:
     return x.get_crs(kind)
 
 
-def proj_pipelines(
+def projPipelines(
     source: Any,
     target: Any,
     authority: str = "",
@@ -37,7 +37,7 @@ def proj_pipelines(
     axis_order_authority_compliant: bool = False,
 ) -> Any:
     """
-    Enumerate PROJ coordinate-transformation pipelines, like R ``terra::proj_pipelines()``.
+    Enumerate PROJ coordinate-transformation pipelines, like R ``terra::projPipelines()``.
 
     Returns a ``pandas.DataFrame`` (or ``None`` if pandas is unavailable) with
     columns *description*, *definition*, *has_inverse*, *accuracy*, *grid_count*.
@@ -81,6 +81,6 @@ def proj_pipelines(
         grid_availability, desired_accuracy,
         strict_containment, axis_order_authority_compliant,
     )
-    messages(v, "proj_pipelines")
+    messages(v, "projPipelines")
 
     return _getSpatDF(sdf)

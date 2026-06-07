@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any, List, Optional, Sequence, Union
 
-from ._helpers import character_crs, messages
+from ._helpers import characterCRS, messages
 from ._terra import SpatExtent, SpatOptions, SpatRaster, SpatVector
 
 __all__ = ["rast"]
@@ -209,7 +209,7 @@ def rast(
         else:
             crs_use = ""
     else:
-        crs_use = character_crs(crs, "rast")
+        crs_use = characterCRS(crs, "rast")
 
     r = SpatRaster(
         [max(1, nrows), max(1, ncols), max(1, nlyrs)],

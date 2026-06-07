@@ -16,15 +16,15 @@ pytest.importorskip("tappa._terra")
 import tappa as pt
 from tappa._terra import SpatOptions
 from tappa.rast import rast
-from tappa.values import set_values
-from tappa.arith import not_na, which_lyr, as_bool_rast, rast_modal
+from tappa.values import setValues
+from tappa.arith import not_na, whichLyr, as_bool_rast, rast_modal
 from tappa.generics import (
-    clamp, subst, cover, diff_raster, segregate,
-    classify, selectRange, scale_linear,
-    roll, thresh, select_highest, divide, approximate, extract_range,
+    clamp, subst, cover, diffRaster, segregate,
+    classify, selectRange, scaleLinear,
+    roll, thresh, selectHighest, divide, approximate, extractRange,
 )
 from tappa.init import init
-from tappa.focal import focal_mat
+from tappa.focal import focalMat
 from tappa.app import app
 from tappa.zonal import zonal
 
@@ -59,7 +59,7 @@ def _make_r():
         values(r) <- 1:ncell(r)
     """
     r = rast(nrows=9, ncols=9, xmin=0, xmax=1, ymin=0, ymax=1)
-    r = set_values(r, list(range(1, 82)))
+    r = setValues(r, list(range(1, 82)))
     return r
 
 
@@ -125,7 +125,7 @@ def test_roll_constant_mean():
     Mirrors R: roll(stk, 3, 'mean', circular=TRUE).
     """
     r1 = rast(nrows=3, ncols=3, xmin=0, xmax=1, ymin=0, ymax=1)
-    r1 = set_values(r1, [1.0] * 9)
+    r1 = setValues(r1, [1.0] * 9)
     stk = _stack(r1, r1, r1, r1, r1)
     rl = roll(stk, n=3, fun="mean", circular=True)
     v = _vals(rl)
@@ -135,11 +135,11 @@ def test_roll_constant_mean():
 
 
 def test_diff_second_minus_first():
-    """diff_raster(c(r, r*2)) == r (layer 2 - layer 1 = 2r - r = r)."""
+    """diffRaster(c(r, r*2)) == r (layer 2 - layer 1 = 2r - r = r)."""
     r = _make_r()
     v = _vals(r)
     stk = _stack(r, r * 2)
-    d = diff_raster(stk, lag=1)
+    d = diffRaster(stk, lag=1)
     np.testing.assert_array_almost_equal(_vals(d), v)
 
 
@@ -167,10 +167,10 @@ def test_thresh_mean_split():
 
 
 def test_scale_linear_unit_range():
-    """scale_linear(r, min=0, max=1) maps to [0, 1] via (v-min)/(max-min)."""
+    """scaleLinear(r, min=0, max=1) maps to [0, 1] via (v-min)/(max-min)."""
     r = _make_r()
     v = _vals(r)
-    scl = scale_linear(r, min=0.0, max=1.0)
+    scl = scaleLinear(r, min=0.0, max=1.0)
     mn, mx = v.min(), v.max()
     expected = (v - mn) / (mx - mn)
     np.testing.assert_array_almost_equal(_vals(scl), expected)
@@ -179,9 +179,9 @@ def test_scale_linear_unit_range():
 def test_focal_mat_circle_7x7():
     """
     focalMat(r, d=3*res, type='circle') → 7×7 for res=1/9 and d=3*(1/9).
-    In tappa focal_mat takes radius in cells: radius = d/res = 3.
+    In tappa focalMat takes radius in cells: radius = d/res = 3.
     """
-    fm = focal_mat("circle", r=3)
+    fm = focalMat("circle", r=3)
     assert fm.shape == (7, 7), f"Expected (7,7), got {fm.shape}"
     assert np.nansum(fm) > 0
 
@@ -193,7 +193,7 @@ def test_which_lyr_first_always_true():
     """
     r = _make_r()
     stk = _stack(r > 0, r > 10000)
-    wly = which_lyr(stk)
+    wly = whichLyr(stk)
     vals = _vals(wly)
     valid = vals[~np.isnan(vals)]
     assert np.all(valid == 0), f"Expected all zeros, got unique={np.unique(valid)}"
@@ -217,9 +217,9 @@ def test_selectRange_by_classify():
 
 
 def test_selectHighest_five_cells():
-    """select_highest(r, n=5): exactly 5 cells marked 1, rest NA."""
+    """selectHighest(r, n=5): exactly 5 cells marked 1, rest NA."""
     r = _make_r()
-    sh = select_highest(r, n=5)
+    sh = selectHighest(r, n=5)
     v = _vals(sh)
     assert int(np.nansum(v == 1)) == 5, (
         f"Expected 5 cells == 1, got {int(np.nansum(v == 1))}"
@@ -236,7 +236,7 @@ def test_classify_2col_lookup():
     np.random.seed(1)
     raw = np.random.choice(np.arange(1, 6), size=100, replace=True).astype(float)
     rcin = rast(nrows=10, ncols=10, xmin=0, xmax=1, ymin=0, ymax=1)
-    rcin = set_values(rcin, raw.tolist())
+    rcin = setValues(rcin, raw.tolist())
     rcl = [[1.0, 11.0], [2.0, 12.0], [3.0, 13.0]]
     rco = classify(rcin, rcl)
     vi = raw
@@ -292,12 +292,12 @@ def test_approximate_fills_na():
     Mirrors R: ra[5] <- NA; ap <- approximate(c(ra, rb)); !is.na(values(ap)[5,1]).
     """
     ra = rast(ncols=3, nrows=3, xmin=0, xmax=1, ymin=0, ymax=1)
-    ra = set_values(ra, list(range(1, 10)))
+    ra = setValues(ra, list(range(1, 10)))
     rb = ra * 1.1
     # Set cell 4 (0-based) = cell 5 in R (1-based) to NA
     ra_vals = list(range(1, 10))
     ra_vals[4] = float("nan")
-    ra = set_values(ra, ra_vals)
+    ra = setValues(ra, ra_vals)
 
     stk = _stack(ra, rb)
     ap = approximate(stk)
@@ -336,11 +336,11 @@ def test_extract_range_per_point():
     e_full = _extract(stk, xy, ID=False)
     expected_row0 = e_full.iloc[0].to_numpy(dtype=float)
 
-    er = extract_range(stk, xy, first=0, last=2)
+    er = extractRange(stk, xy, first=0, last=2)
 
     # Returns a list of DataFrames, one per point
     assert len(er) == 2
     row0 = er[0].iloc[0].to_numpy(dtype=float)
     assert len(row0) == 3
-    # extract_range [0..2] on a 3-layer stack must equal full extract
+    # extractRange [0..2] on a 3-layer stack must equal full extract
     np.testing.assert_array_almost_equal(row0, expected_row0)

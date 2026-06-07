@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from typing import Any, Optional
 
-from ._helpers import character_crs, messages
+from ._helpers import characterCRS, messages
 from ._terra import SpatExtent, SpatVector
 
 __all__ = ["tessellate"]
@@ -162,7 +162,7 @@ def tessellate(
             raise ValueError("tessellate: size must be a single positive number")
         size_f = float(size)
 
-    crs_str = character_crs(crs, "tessellate")
+    crs_str = characterCRS(crs, "tessellate")
     if not crs_str and geo is True:
         crs_str = "+proj=longlat"
 
@@ -199,7 +199,7 @@ def tessellate(
         if type_ == "rectangles":
             # Planar rectangles: degenerate to as.polygons(rast(e, res=sqrt(size)))
             from .rast import rast as _rast
-            from .coerce import as_polygons as _as_polygons
+            from .coerce import asPolygons as _as_polygons
             r = _rast(e, resolution=math.sqrt(size_f),
                       crs=(crs_str if crs_str else None))
             return _as_polygons(r)

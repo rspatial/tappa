@@ -5,7 +5,7 @@ import numpy as np
 
 from tappa.rast import rast
 from tappa.extent import ext
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.generics import pitfinder, terrain
 
 
@@ -25,7 +25,7 @@ def test_pitfinder():
     # R: rast(matrix) → extent c(0, ncol, 0, nrow)
     nrow, ncol = elev.shape
     r_elev = rast(nrows=nrow, ncols=ncol, extent=ext(0, ncol, 0, nrow))
-    r_elev = set_values(r_elev, elev.astype(float).ravel(order="C"))
+    r_elev = setValues(r_elev, elev.astype(float).ravel(order="C"))
 
     flowdir = terrain(r_elev, "flowdir")
     pits = pitfinder(flowdir)

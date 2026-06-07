@@ -22,7 +22,7 @@ def has_window(x: SpatRaster) -> bool:
     return bool(x.hasWindow())
 
 
-def set_window(
+def setWindow(
     x: SpatRaster,
     value: Optional[SpatExtent],
 ) -> SpatRaster:
@@ -44,9 +44,9 @@ def set_window(
         xc.removeWindow()
         return xc
 
-    from .extent import intersect_ext
+    from .extent import intersectExt
     e = x.extent
-    value = intersect_ext(e, value)
+    value = intersectExt(e, value)
     if value is None:
         raise ValueError("window does not overlap with x")
     if not xc.setWindow(value):
@@ -54,7 +54,7 @@ def set_window(
     return xc
 
 
-def remove_window(x: SpatRaster) -> SpatRaster:
+def removeWindow(x: SpatRaster) -> SpatRaster:
     """Return a copy of *x* with any reading window removed."""
     xc = x.deepcopy() if hasattr(x, 'deepcopy') else x
     xc.removeWindow()

@@ -15,9 +15,9 @@ from tappa._helpers import messages
 from tappa.rast import rast
 from tappa.extent import ext
 from tappa.generics import crop
-from tappa.window import set_window
+from tappa.window import setWindow
 from tappa.extract import extract
-from tappa.sample import spat_sample
+from tappa.sample import spatSample
 
 from path_utils import skip_if_missing_inst_ex
 
@@ -48,8 +48,8 @@ def test_crop_and_window_values_match(logo):
     y = x * 1.0
     e = ext(35, 55, 35, 55)
     z = crop(x, e)
-    xw = set_window(x, e)
-    yw = set_window(y, e)
+    xw = setWindow(x, e)
+    yw = setWindow(y, e)
     np.testing.assert_array_almost_equal(_read_all_values(xw), _read_all_values(z))
     np.testing.assert_array_almost_equal(_read_all_values(yw), _read_all_values(z))
 
@@ -62,16 +62,16 @@ def test_spat_sample_windowed_equals_cropped_skipped(logo):
     y = x * 1.0
     e = ext(35, 55, 35, 55)
     z = crop(x, e)
-    xw = set_window(x, e)
-    yw = set_window(y, e)
+    xw = setWindow(x, e)
+    yw = setWindow(y, e)
     a = _c_stack(z, yw, xw)
 
     np.random.seed(1)
-    s = spat_sample(xw, 4, method="random", cells=True)
+    s = spatSample(xw, 4, method="random", cells=True)
     np.random.seed(1)
-    sy = spat_sample(yw, 4, method="random", cells=True)
+    sy = spatSample(yw, 4, method="random", cells=True)
     np.random.seed(1)
-    sz = spat_sample(z, 4, method="random", cells=True)
+    sz = spatSample(z, 4, method="random", cells=True)
 
     for d in (s, sy, sz):
         assert isinstance(d, pd.DataFrame)
@@ -89,7 +89,7 @@ def test_spat_sample_windowed_equals_cropped_skipped(logo):
 
     # stacked raster: same seed → same cells; first sub-raster values match s
     np.random.seed(1)
-    sa = spat_sample(a, 4, method="random", cells=True)
+    sa = spatSample(a, 4, method="random", cells=True)
     assert isinstance(sa, pd.DataFrame)
     assert len(sa) == 4
     np.testing.assert_array_equal(s["cell"].values, sa["cell"].values)
@@ -104,11 +104,11 @@ def test_spat_sample_same_shape(logo):
     y = x * 1.0
     e = ext(35, 55, 35, 55)
     z = crop(x, e)
-    xw = set_window(x, e)
-    yw = set_window(y, e)
-    df1 = spat_sample(xw, 4, method="random", cells=True)
-    df2 = spat_sample(yw, 4, method="random", cells=True)
-    df3 = spat_sample(z, 4, method="random", cells=True)
+    xw = setWindow(x, e)
+    yw = setWindow(y, e)
+    df1 = spatSample(xw, 4, method="random", cells=True)
+    df2 = spatSample(yw, 4, method="random", cells=True)
+    df3 = spatSample(z, 4, method="random", cells=True)
     import pandas as pd
 
     for d in (df1, df2, df3):
@@ -123,8 +123,8 @@ def test_extract_matrix_consistency(logo):
     y = x * 1.0
     e = ext(35, 55, 35, 55)
     z = crop(x, e)
-    xw = set_window(x, e)
-    yw = set_window(y, e)
+    xw = setWindow(x, e)
+    yw = setWindow(y, e)
     a = _c_stack(z, yw, xw)
     xy = 10.0 * np.column_stack([np.arange(-1, 7, dtype=float)] * 2)
     e1 = extract(xw, xy)
@@ -147,10 +147,10 @@ def test_stacked_sample_columns_skipped_or_lite(logo):
     x = logo
     e = ext(35, 55, 35, 55)
     z = crop(x, e)
-    xw = set_window(x, e)
-    yw = set_window(x * 1.0, e)
+    xw = setWindow(x, e)
+    yw = setWindow(x * 1.0, e)
     a = _c_stack(z, yw, xw)
-    df = spat_sample(a, 4, method="random", cells=True)
+    df = spatSample(a, 4, method="random", cells=True)
     import pandas as pd
 
     assert isinstance(df, pd.DataFrame)

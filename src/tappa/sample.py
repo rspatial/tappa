@@ -84,7 +84,7 @@ def _build_df(
     return pd.DataFrame(d)
 
 
-def spat_sample(
+def spatSample(
     x: Union[SpatRaster, SpatExtent],
     size: int,
     method: str = "random",
@@ -92,7 +92,7 @@ def spat_sample(
     replace: bool = False,
     na_rm: bool = False,
     as_raster: bool = False,
-    as_points: bool = False,
+    asPoints: bool = False,
     values: bool = True,
     cells: bool = False,
     xy: bool = False,
@@ -116,7 +116,7 @@ def spat_sample(
         Exclude NA cells.
     as_raster : bool
         Return sampled cells as a SpatRaster mask.
-    as_points : bool
+    asPoints : bool
         Return sampled cells as a SpatVector of points.
     values : bool
         Include cell values in the output.
@@ -139,7 +139,7 @@ def spat_sample(
     size = max(1, int(round(size)))
 
     if isinstance(x, SpatExtent):
-        return _sample_extent(x, size, method, lonlat, as_points, exact)
+        return _sample_extent(x, size, method, lonlat, asPoints, exact)
 
     method = method.lower()
     if method not in ("random", "regular", "stratified"):
@@ -173,7 +173,7 @@ def spat_sample(
             if warn:
                 import warnings
                 warnings.warn(
-                    f"spat_sample: requested {size} but only {n_avail} valid cells available"
+                    f"spatSample: requested {size} but only {n_avail} valid cells available"
                 )
             size = n_avail
 
@@ -181,13 +181,13 @@ def spat_sample(
         cell_idx = valid_idx[chosen]
         val_arr = all_vals[cell_idx]
 
-        if as_points:
+        if asPoints:
             return _cells_to_points(x, cell_idx)
 
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for spat_sample()")
+            raise ImportError("pandas is required for spatSample()")
         return _build_df(x, cell_idx, val_arr, cells, xy, values)
 
     # ── regular ───────────────────────────────────────────────────────────────
@@ -204,13 +204,13 @@ def spat_sample(
         all_vals = _read_all_values(x)
         val_arr = all_vals[cell_idx]
 
-        if as_points:
+        if asPoints:
             return _cells_to_points(x, cell_idx)
 
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for spat_sample()")
+            raise ImportError("pandas is required for spatSample()")
         return _build_df(x, cell_idx, val_arr, cells, xy, values)
 
     # ── stratified ────────────────────────────────────────────────────────────
@@ -231,13 +231,13 @@ def spat_sample(
             cell_idx = np.empty(0, dtype=int)
         val_arr = all_vals[cell_idx]
 
-        if as_points:
+        if asPoints:
             return _cells_to_points(x, cell_idx)
 
         try:
             import pandas as pd
         except ImportError:
-            raise ImportError("pandas is required for spat_sample()")
+            raise ImportError("pandas is required for spatSample()")
         return _build_df(x, cell_idx, val_arr, cells, xy, values)
 
 
@@ -258,7 +258,7 @@ def _sample_extent(
     size: int,
     method: str,
     lonlat: Optional[bool],
-    as_points: bool,
+    asPoints: bool,
     exact: bool,
 ) -> Union[np.ndarray, SpatVector]:
     method = method.lower()
@@ -271,17 +271,17 @@ def _sample_extent(
     else:
         s = x.sampleRegular(size, lonlat)
     arr = np.array(s, dtype=float).reshape(-1, 2)
-    if as_points:
+    if asPoints:
         from .vect import vect
         return vect(arr, type="points")
     return arr
 
 
 # ---------------------------------------------------------------------------
-# grid_sample — spatial thinning on a grid
+# gridSample — spatial thinning on a grid
 # ---------------------------------------------------------------------------
 
-def grid_sample(
+def gridSample(
     xy: Union[np.ndarray, SpatVector],
     r: SpatRaster,
     n: int = 1,

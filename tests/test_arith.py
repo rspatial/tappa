@@ -3,7 +3,7 @@ Tests ported from inst/tinytest/test_arith.R
 """
 import numpy as np
 import tappa as pt
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.rast import rast
 
 
@@ -15,7 +15,7 @@ def _vals(r):
 def make_r():
     """2×2 raster filled with 0.5."""
     r = rast(nrows=2, ncols=2)
-    return set_values(r, 0.5)
+    return setValues(r, 0.5)
 
 
 def test_scalar_minus_raster():

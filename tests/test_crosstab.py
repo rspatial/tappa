@@ -5,9 +5,9 @@ import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.generics import crosstab
-from tappa.names import set_names_inplace
+from tappa.names import setNamesInplace
 
 
 class TestCrosstab:
@@ -15,10 +15,10 @@ class TestCrosstab:
         np.random.seed(2)
         r = rast(nrows=10, ncols=10)
         v = np.random.choice(np.arange(1, 6), size=100)
-        r = set_values(r, v.astype(float))
+        r = setValues(r, v.astype(float))
         np.random.seed(3)
         s = rast(nrows=10, ncols=10)
-        s = set_values(s, np.random.choice(np.arange(1, 4), size=100).astype(float))
+        s = setValues(s, np.random.choice(np.arange(1, 4), size=100).astype(float))
         opt = pt.SpatOptions()
         rs = r.deepcopy()
         rs.addSource(s, True, opt)

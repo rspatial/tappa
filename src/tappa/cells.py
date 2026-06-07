@@ -127,21 +127,21 @@ def cells(
 # Row / col / cell conversions
 # ---------------------------------------------------------------------------
 
-def row_from_y(x: SpatRaster, y: Union[float, List[float]]) -> np.ndarray:
+def rowFromY(x: SpatRaster, y: Union[float, List[float]]) -> np.ndarray:
     """Return row indices (0-based) for y-coordinates."""
     if isinstance(y, (int, float)):
         y = [float(y)]
     return np.array(x.rowFromY(y), dtype=int)
 
 
-def col_from_x(x: SpatRaster, xcoord: Union[float, List[float]]) -> np.ndarray:
+def colFromX(x: SpatRaster, xcoord: Union[float, List[float]]) -> np.ndarray:
     """Return column indices (0-based) for x-coordinates."""
     if isinstance(xcoord, (int, float)):
         xcoord = [float(xcoord)]
     return np.array(x.colFromX(xcoord), dtype=int)
 
 
-def cell_from_xy(
+def cellFromXY(
     x: SpatRaster,
     xy: Union[float, List, np.ndarray],
     y: Union[float, List, np.ndarray, None] = None,
@@ -168,7 +168,7 @@ def cell_from_xy(
         xs = np.atleast_1d(np.asarray(xy, dtype=float)).ravel()
         ys = np.atleast_1d(np.asarray(y, dtype=float)).ravel()
         if xs.shape != ys.shape:
-            raise ValueError("cell_from_xy: x and y must have the same length")
+            raise ValueError("cellFromXY: x and y must have the same length")
     else:
         arr = np.asarray(xy, dtype=float)
         if arr.ndim == 1:
@@ -179,7 +179,7 @@ def cell_from_xy(
     return np.array(raw, dtype=float)
 
 
-def cell_from_row_col(
+def cellFromRowCol(
     x: SpatRaster,
     row: Union[int, List[int]],
     col: Union[int, List[int]],
@@ -193,7 +193,7 @@ def cell_from_row_col(
     return np.array(raw, dtype=int)
 
 
-def xy_from_cell(x: SpatRaster, cell: Union[int, float, np.integer, List[int], np.ndarray]) -> np.ndarray:
+def xyFromCell(x: SpatRaster, cell: Union[int, float, np.integer, List[int], np.ndarray]) -> np.ndarray:
     """
     Return x/y coordinates for cell numbers.
 
@@ -211,7 +211,7 @@ def xy_from_cell(x: SpatRaster, cell: Union[int, float, np.integer, List[int], n
     return np.array(coords, dtype=float).reshape(-1, 2)
 
 
-def row_col_from_cell(
+def rowColFromCell(
     x: SpatRaster,
     cell: Union[int, float, np.integer, List[int], np.ndarray],
 ) -> np.ndarray:

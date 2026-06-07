@@ -107,9 +107,9 @@ def rasterize(
         out = messages(out, "rast")
         split_names = list(svc.names)
         if split_names and len(split_names) == out.nlyr():
-            from .names import set_names_rast
+            from .names import setNamesRast
 
-            out = set_names_rast(out, [str(n) for n in split_names])
+            out = setNamesRast(out, [str(n) for n in split_names])
         return out
 
     geom_type_raw = x.geomtype()
@@ -120,9 +120,10 @@ def rasterize(
         if isinstance(field, (int, float)) and not isinstance(field, bool):
             values_arr = np.full(len(xy), float(field))
         elif isinstance(field, str) and field != "" and field in list(x.names):
-            col_idx = list(x.names).index(field)
-            vals_raw = [x.getValues1(i, col_idx) for i in range(x.nrow())]
-            values_arr = np.array(vals_raw, dtype=float)
+            from ._helpers import _getSpatDF
+
+            df = _getSpatDF(x.df)
+            values_arr = np.asarray(df[field].values, dtype=float)
         else:
             values_arr = np.ones(len(xy), dtype=float)
         return _rasterize_points_xy(xy, values_arr, y, fun, background, update, na_rm, filename, overwrite)
@@ -144,15 +145,21 @@ def rasterize(
                 raise ValueError(f"{field!r} is not a field in x")
             field_str = field
             if na_rm:
-                col_idx = list(x.names).index(field_str)
-                mask = [
-                    not (isinstance(x.getValues1(i, col_idx), (int, float)) and np.isnan(float(x.getValues1(i, col_idx))))
-                    for i in range(x.nrow())
-                ]
-                if not all(mask):
-                    from .subset import subset_vect
+                from ._helpers import _getSpatDF
 
-                    x = subset_vect(x, mask)
+                df = _getSpatDF(x.df)
+                col = df[field_str]
+                # Only numeric columns can carry NA in a meaningful sense
+                # for rasterize; for non-numeric leave the rows alone.
+                try:
+                    col_f = np.asarray(col, dtype=float)
+                    mask = ~np.isnan(col_f)
+                except (TypeError, ValueError):
+                    mask = np.ones(len(col), dtype=bool)
+                if not mask.all():
+                    from .subset import subsetVect
+
+                    x = subsetVect(x, mask.tolist())
 
         if fun is not None:
             fun_str = fun if isinstance(fun, str) else getattr(fun, "__name__", "last")

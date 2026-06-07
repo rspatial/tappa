@@ -19,7 +19,7 @@ def _opt() -> SpatOptions:
 # SpatRaster write
 # ---------------------------------------------------------------------------
 
-def write_raster(
+def writeRaster(
     x: SpatRaster,
     filename: str,
     overwrite: bool = False,
@@ -144,7 +144,7 @@ def update(
     return x
 
 
-def write_start(
+def writeStart(
     x: SpatRaster,
     filename: str,
     overwrite: bool = False,
@@ -178,21 +178,21 @@ def write_start(
     return b
 
 
-def write_values(
+def writeValues(
     x: SpatRaster,
     v: List[float],
     start: int,
     nrows: int,
 ) -> bool:
     """
-    Write a block of values to a file opened with write_start().
+    Write a block of values to a file opened with writeStart().
 
     Parameters
     ----------
     x : SpatRaster
     v : list of float
     start : int
-        Starting row (0-based; matches C++ / ``write_start`` / ``blocks``).
+        Starting row (0-based; matches C++ / ``writeStart`` / ``blocks``).
     nrows : int
         Number of rows in this block.
 
@@ -205,7 +205,7 @@ def write_values(
     return bool(ok)
 
 
-def write_stop(x: SpatRaster) -> SpatRaster:
+def writeStop(x: SpatRaster) -> SpatRaster:
     """
     Finalise a block-wise write and close the file.
 
@@ -275,7 +275,7 @@ def _guess_filetype(filename: str) -> str:
     return ft
 
 
-def write_vector(
+def writeVector(
     x: SpatVector,
     filename: str,
     filetype: Optional[str] = None,

@@ -152,7 +152,7 @@ def disagg(
 # aggregate SpatVector
 # ---------------------------------------------------------------------------
 
-def aggregate_vect(
+def aggregateVect(
     x: SpatVector,
     by: Optional[Union[str, List[str]]] = None,
     dissolve: bool = True,
@@ -184,7 +184,7 @@ def aggregate_vect(
             by_str = str(by_list[0])
         else:
             raise NotImplementedError(
-                "aggregate_vect: aggregating by multiple columns is not yet "
+                "aggregateVect: aggregating by multiple columns is not yet "
                 "supported (the C++ binding takes a single column name)"
             )
 
@@ -192,7 +192,7 @@ def aggregate_vect(
         # No grouping column: dissolve every feature into one (R: aggregate(v)).
         # The C++ side has a dedicated entry point for this case.
         out = x.aggregate_nofield(bool(dissolve))
-        return messages(out, "aggregate_vect")
+        return messages(out, "aggregateVect")
 
     xc = _cpp_vect_aggregate(x, by_str, bool(dissolve))
-    return messages(xc, "aggregate_vect")
+    return messages(xc, "aggregateVect")

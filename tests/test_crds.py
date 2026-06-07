@@ -7,13 +7,13 @@ import pytest
 import tappa as pt
 from tappa.rast import rast
 from tappa.vect import vect
-from tappa.cells import cell_from_xy
+from tappa.cells import cellFromXY
 
 
 def test_cell_from_xy_valid_origin():
     """(0, 0) → cell 32580 on the default global raster (0-based; R reports 32581)."""
     r = rast()
-    cells = cell_from_xy(r, np.array([[0.0, 0.0]]))
+    cells = cellFromXY(r, np.array([[0.0, 0.0]]))
     assert cells[0] == 32580
 
 
@@ -21,7 +21,7 @@ def test_cell_from_xy_all_nan_returns_invalid():
     """NaN coordinate pairs should return an invalid / NA sentinel."""
     r = rast()
     xy = np.array([[float("nan"), float("nan")], [float("nan"), 0.0]])
-    cells = cell_from_xy(r, xy)
+    cells = cellFromXY(r, xy)
     # R returns NA; Python may return NaN, -1, or a sentinel.
     # Valid 0-based cells are in [0, ncell - 1].
     ncell = r.ncell()

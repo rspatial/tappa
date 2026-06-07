@@ -6,7 +6,7 @@ random data use deterministic values chosen to exercise the same logic.
 """
 import numpy as np
 import tappa as pt
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.generics import classify
 from tappa.rast import rast
 
@@ -24,7 +24,7 @@ def test_classify_3col_include_lowest():
     r_vals = [0.8762, 0.7798, 0.3423, 0.8973, 0.4494,
               0.8210, 0.5961, 0.1836, 0.4849]
     r = rast(nrows=3, ncols=3)
-    r = set_values(r, r_vals)
+    r = setValues(r, r_vals)
     m = np.array([[0, 0.25, 1],
                   [0.25, 0.5, 2],
                   [0.5,  1,   3]])
@@ -35,7 +35,7 @@ def test_classify_3col_include_lowest():
 def test_classify_3col_right_false():
     """Bins [0,2), [2,3), [3,8) with right=False."""
     r = rast(nrows=3, ncols=3)
-    r = set_values(r, np.arange(9, dtype=float))
+    r = setValues(r, np.arange(9, dtype=float))
     m = np.array([[0, 2, 1],
                   [2, 3, 2],
                   [3, 8, 3]])
@@ -46,7 +46,7 @@ def test_classify_3col_right_false():
 def test_classify_3col_right_true():
     """Bins (0,2], (2,3], (3,8] with right=True."""
     r = rast(nrows=3, ncols=3)
-    r = set_values(r, np.arange(9, dtype=float))
+    r = setValues(r, np.arange(9, dtype=float))
     m = np.array([[0, 2, 1],
                   [2, 3, 2],
                   [3, 8, 3]])
@@ -57,7 +57,7 @@ def test_classify_3col_right_true():
 def test_classify_3col_right_true_include_lowest():
     """Bins [0,2], (2,3], (3,8] with right=True, include_lowest=True."""
     r = rast(nrows=3, ncols=3)
-    r = set_values(r, np.arange(9, dtype=float))
+    r = setValues(r, np.arange(9, dtype=float))
     m = np.array([[0, 2, 1],
                   [2, 3, 2],
                   [3, 8, 3]])
@@ -70,7 +70,7 @@ def test_classify_2col_lookup():
     # Use deterministic values (5 classes, 20 cells each)
     v = np.repeat([1., 2., 3., 4., 5.], 20)
     r = rast(nrows=10, ncols=10)
-    r = set_values(r, v)
+    r = setValues(r, v)
     rcl = np.array([[1, 11], [2, 12], [3, 13]], dtype=float)
     r_out = classify(r, rcl)
     v_out = _vals(r_out)

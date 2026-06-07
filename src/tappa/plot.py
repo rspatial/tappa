@@ -1,7 +1,7 @@
 """
 Plotting for SpatRaster objects.
 
-Provides :func:`plot` (single or multi-layer raster) and :func:`plot_rgb`
+Provides :func:`plot` (single or multi-layer raster) and :func:`plotRGB`
 (composite colour image) using **matplotlib** as the rendering backend.
 
 Quick start::
@@ -24,7 +24,7 @@ import numpy as np
 
 from ._terra import SpatOptions, SpatRaster, SpatVector
 
-__all__ = ["plot", "plot_rgb", "points", "lines", "polys", "text"]
+__all__ = ["plot", "plotRGB", "points", "lines", "polys", "text"]
 
 # ── Default palette ──────────────────────────────────────────────────────────
 
@@ -38,9 +38,9 @@ def _default_palette(n: int = 255) -> List[str]:
     Returns:
         List of hex colour strings.
     """
-    import matplotlib.cm as cm
+    import matplotlib as mpl
     import matplotlib.colors as mc
-    cmap = cm.get_cmap("terrain_r", n)
+    cmap = mpl.colormaps["terrain_r"].resampled(n)
     return [mc.to_hex(cmap(i)) for i in range(n)]
 
 
@@ -230,17 +230,23 @@ def _cats_to_dict(cats_obj: Any) -> Tuple[List[float], List[str]]:
     Extract ``(ids, labels)`` from a SpatCategories object.
 
     Returns a list of numeric IDs and a parallel list of label strings.
+    SpatCategories.index is the 0-based column index of the active label
+    column in df (see SpatRaster::getLabels in terra). The id is column 0;
+    for a typical [id, label] table the label sits at index 1.
     """
-    df = cats_obj.df
-    # SpatDataFrame columns come back as a dict-like; try common key patterns
+    from ._helpers import _getSpatDF
+
+    df = _getSpatDF(cats_obj.df)
+    if df is None or df.empty or df.shape[1] < 2:
+        return [], []
     try:
-        ids = list(df.get_column(0))
-        label_col = cats_obj.index if hasattr(cats_obj, "index") else 1
-        # cats_obj.index is 0-based offset *past* the id column, so the actual
-        # column position is label_col + 1.
-        labels = [str(v) for v in df.get_column(int(label_col) + 1)]
+        ids = [float(v) for v in df.iloc[:, 0]]
+        label_col = int(getattr(cats_obj, "index", 1))
+        if label_col <= 0 or label_col >= df.shape[1]:
+            label_col = min(1, df.shape[1] - 1)
+        labels = [str(v) for v in df.iloc[:, label_col]]
     except Exception:
-        ids, labels = [], []
+        return [], []
     return ids, labels
 
 
@@ -250,19 +256,23 @@ def _coltab_to_hex(coltab_obj: Any) -> Tuple[List[float], List[str]]:
 
     The SpatDataFrame has columns: id, R, G, B, A (values 0–255).
     """
-    df = coltab_obj
+    from ._helpers import _getSpatDF
+
+    df = _getSpatDF(coltab_obj)
+    if df is None or df.empty or df.shape[1] < 5:
+        return [], []
     try:
-        ids = list(df.get_column(0))
-        r = np.array(df.get_column(1), dtype=np.uint8)
-        g = np.array(df.get_column(2), dtype=np.uint8)
-        b = np.array(df.get_column(3), dtype=np.uint8)
-        a = np.array(df.get_column(4), dtype=np.uint8)
+        ids = [float(v) for v in df.iloc[:, 0]]
+        r = np.asarray(df.iloc[:, 1], dtype=np.uint8)
+        g = np.asarray(df.iloc[:, 2], dtype=np.uint8)
+        b = np.asarray(df.iloc[:, 3], dtype=np.uint8)
+        a = np.asarray(df.iloc[:, 4], dtype=np.uint8)
         hexcols = [
             "#{:02x}{:02x}{:02x}{:02x}".format(ri, gi, bi, ai)
             for ri, gi, bi, ai in zip(r, g, b, a)
         ]
     except Exception:
-        ids, hexcols = [], []
+        return [], []
     return ids, hexcols
 
 
@@ -339,7 +349,16 @@ def _interval_image(
 
     breaks = np.asarray(breaks, dtype=np.float64)
     n_bins = len(breaks) - 1
-    cols = palette[:n_bins] if len(palette) >= n_bins else palette + [palette[-1]] * (n_bins - len(palette))
+    # Resample the (typically 255-entry) palette across n_bins so each
+    # interval gets a distinct colour spanning the full ramp. R's
+    # ``terra::plot(type="interval")`` does the same — slicing the first
+    # *n_bins* colours collapses to one corner of the ramp (e.g. all light
+    # grey for the default ``terrain_r``).
+    if len(palette) >= n_bins:
+        idx = np.linspace(0, len(palette) - 1, n_bins).round().astype(int)
+        cols = [palette[int(i)] for i in idx]
+    else:
+        cols = list(palette) + [palette[-1]] * (n_bins - len(palette))
 
     bin_idx = np.digitize(arr, breaks[:-1]) - 1
     bin_idx = np.clip(bin_idx, 0, n_bins - 1)
@@ -907,8 +926,9 @@ def plot(
     if col is None:
         palette = _default_palette(255)
     elif isinstance(col, str):
-        cmap_obj = cm.get_cmap(col, 255)
+        import matplotlib as mpl
         import matplotlib.colors as mc
+        cmap_obj = mpl.colormaps[col].resampled(255)
         palette = [mc.to_hex(cmap_obj(i)) for i in builtins.range(255)]
     else:
         palette = list(col)
@@ -982,7 +1002,7 @@ def plot(
     return np.array(axes_arr)
 
 
-def plot_rgb(
+def plotRGB(
     r: SpatRaster,
     red: int = 0,
     green: int = 1,
@@ -1238,8 +1258,8 @@ def _resolve_color_by_attr(
     import matplotlib.colors as mc
 
     try:
-        from .values import vect_values
-        df = vect_values(v)
+        from .values import vectValues
+        df = vectValues(v)
     except Exception:
         return None, None, None
     cols = list(df.columns) if hasattr(df, "columns") else []
@@ -1251,7 +1271,8 @@ def _resolve_color_by_attr(
     if palette is None:
         pal = _default_palette(255)
     elif isinstance(palette, str):
-        cmap_obj = cm.get_cmap(palette, 255)
+        import matplotlib as mpl
+        cmap_obj = mpl.colormaps[palette].resampled(255)
         pal = [mc.to_hex(cmap_obj(i)) for i in range(255)]
     else:
         pal = list(palette)
@@ -1576,8 +1597,8 @@ def _resolve_text_labels(
         return [str(i + 1) for i in range(n)]
     if isinstance(labels, (str, int)):
         try:
-            from .values import vect_values
-            df = vect_values(x)
+            from .values import vectValues
+            df = vectValues(x)
         except Exception:
             df = None
         cols = list(df.columns) if df is not None and hasattr(df, "columns") else []

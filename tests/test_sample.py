@@ -11,8 +11,8 @@ import pytest
 pytest.importorskip("tappa._terra")
 
 from tappa.rast import rast
-from tappa.values import set_values
-from tappa.sample import spat_sample
+from tappa.values import setValues
+from tappa.sample import spatSample
 
 from path_utils import skip_if_missing_inst_ex
 
@@ -29,12 +29,12 @@ def _make_rr():
     vals = np.arange(1, 26, dtype=float)
     vals[0] = float("nan")
     vals[1] = float("nan")
-    return set_values(r, vals)
+    return setValues(r, vals)
 
 
 def test_random_unique_cells():
     rr = _make_rr()
-    df = _need_pandas(spat_sample(rr, 20, method="random", cells=True))
+    df = _need_pandas(spatSample(rr, 20, method="random", cells=True))
     assert len(df) == 20
     assert "cell" in df.columns
     assert df["cell"].nunique() == 20
@@ -42,15 +42,15 @@ def test_random_unique_cells():
 
 def test_random_replace_allows_duplicates():
     r5 = rast(nrows=3, ncols=3, xmin=0, xmax=3, ymin=0, ymax=3, crs="local")
-    r5 = set_values(r5, np.ones(9))
-    df = _need_pandas(spat_sample(r5, 30, method="random", replace=True, cells=True))
+    r5 = setValues(r5, np.ones(9))
+    df = _need_pandas(spatSample(r5, 30, method="random", replace=True, cells=True))
     assert len(df) == 30
     assert df["cell"].nunique() <= 9
 
 
 def test_random_na_rm():
     rr = _make_rr()
-    df = _need_pandas(spat_sample(rr, 8, method="random", na_rm=True, cells=True))
+    df = _need_pandas(spatSample(rr, 8, method="random", na_rm=True, cells=True))
     assert len(df) == 8
     val_cols = [c for c in df.columns if c not in ("cell", "x", "y")]
     for col in val_cols:
@@ -60,7 +60,7 @@ def test_random_na_rm():
 def test_regular_xy_and_values_match():
     rr = _make_rr()
     df = _need_pandas(
-        spat_sample(rr, 9, method="regular", cells=True, xy=True, values=True)
+        spatSample(rr, 9, method="regular", cells=True, xy=True, values=True)
     )
     assert "cell" in df.columns
     assert "x" in df.columns
@@ -70,15 +70,15 @@ def test_regular_xy_and_values_match():
 
 def test_regular_as_raster_coarser():
     rr = _make_rr()
-    srast = spat_sample(rr, 50, method="regular", as_raster=True)
+    srast = spatSample(rr, 50, method="regular", as_raster=True)
     assert srast.nrow() <= rr.nrow()
     assert srast.ncol() <= rr.ncol()
 
 
 def test_regular_exact_rowcount():
     r9_template = rast(nrows=5, ncols=5, xmin=0, xmax=5, ymin=0, ymax=5, crs="local")
-    r9_template = set_values(r9_template, np.ones(25))
+    r9_template = setValues(r9_template, np.ones(25))
     df = _need_pandas(
-        spat_sample(r9_template, 25, method="regular", cells=True, exact=True)
+        spatSample(r9_template, 25, method="regular", cells=True, exact=True)
     )
     assert len(df) == 25

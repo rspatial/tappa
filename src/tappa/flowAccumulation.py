@@ -1,5 +1,5 @@
 """
-flow_accumulation — upslope contributing area from flow directions (R ``flowAccumulation``).
+flowAccumulation — upslope contributing area from flow directions (R ``flowAccumulation``).
 """
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from ._terra import SpatRaster
 from ._helpers import messages, spatoptions
 
 
-def flow_accumulation(
+def flowAccumulation(
     x: SpatRaster,
     weight: Optional[SpatRaster] = None,
     *,

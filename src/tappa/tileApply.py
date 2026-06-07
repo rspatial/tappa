@@ -1,8 +1,8 @@
 """
-tile_apply.py — apply a function to spatial tiles of a SpatRaster, in
+tileApply.py — apply a function to spatial tiles of a SpatRaster, in
 parallel, and assemble the per-tile results back into a single raster.
 
-Mirrors ``R/tile_apply.R`` (and the auto-tiling helpers from ``R/tiles.R``)
+Mirrors ``R/tileApply.R`` (and the auto-tiling helpers from ``R/tiles.R``)
 in the terra R package. The pipeline is memory-safe: every per-tile
 result is written straight to disk by the worker (or by the sequential
 loop) and the parent process only sees filenames, so peak RAM per
@@ -24,14 +24,14 @@ import numpy as np
 from ._helpers import messages, spatoptions
 from ._terra import SpatExtent, SpatOptions, SpatRaster, SpatVector
 
-__all__ = ["tile_apply", "get_tile_extents", "make_tiles"]
+__all__ = ["tileApply", "getTileExtents", "makeTiles"]
 
 
 # methods.py registers high-level Python wrappers under these same names on
 # SpatRaster, so capture the raw C++ methods up front (mirrors focal.py).
 _cpp_get_tiles_ext = SpatRaster.get_tiles_ext
 _cpp_get_tiles_ext_vect = SpatRaster.get_tiles_ext_vect
-_cpp_make_tiles = SpatRaster.make_tiles
+_cpp_make_tiles = SpatRaster.makeTiles
 _cpp_make_tiles_vect = SpatRaster.make_tiles_vect
 
 
@@ -141,12 +141,12 @@ def _auto_tile_size(
 
 
 # ---------------------------------------------------------------------------
-# get_tile_extents and make_tiles
+# getTileExtents and makeTiles
 # ---------------------------------------------------------------------------
 
 def _template_from_factors(x: SpatRaster, fac: Sequence[int]) -> SpatRaster:
     """Build the coarse template raster used by ``get_tiles_ext`` /
-    ``make_tiles`` from a per-tile (rows, cols) size, like R's
+    ``makeTiles`` from a per-tile (rows, cols) size, like R's
     ``aggregate(rast(x), y)``.
 
     ``SpatRaster::geometry(nlyrs, properties, time, units, tags)`` has no
@@ -159,7 +159,7 @@ def _template_from_factors(x: SpatRaster, fac: Sequence[int]) -> SpatRaster:
     return aggregate(geom, [int(fac[0]), int(fac[1])])
 
 
-def get_tile_extents(
+def getTileExtents(
     x: SpatRaster,
     y: Optional[Union[int, Sequence[int], SpatRaster, SpatVector]] = None,
     *,
@@ -179,7 +179,7 @@ def get_tile_extents(
         the per-tile size (rows, cols). When ``y`` is omitted the tile
         size is chosen automatically based on the source's GDAL block
         size and a memory budget for *cores* workers (see
-        ``tile_apply``).
+        ``tileApply``).
     extend : bool
         Pad the boundary tiles to the raster extent.
     buffer : int
@@ -205,20 +205,20 @@ def get_tile_extents(
         else:
             ys = [int(v) for v in y]
             if len(ys) == 0:
-                raise ValueError("get_tile_extents: 'y' is empty")
+                raise ValueError("getTileExtents: 'y' is empty")
             if len(ys) > 2:
-                raise ValueError("get_tile_extents: expected one or two numbers")
+                raise ValueError("getTileExtents: expected one or two numbers")
             if len(ys) == 1:
                 ys = [ys[0], ys[0]]
         template = _template_from_factors(x, ys)
         e = _cpp_get_tiles_ext(x, template, bool(extend), buf)
 
-    messages(x, "get_tile_extents")
+    messages(x, "getTileExtents")
     arr = np.asarray(e, dtype=float).reshape(-1, 4, order="F")
     return arr
 
 
-def make_tiles(
+def makeTiles(
     x: SpatRaster,
     y: Union[int, Sequence[int], SpatRaster, SpatVector],
     *,
@@ -235,7 +235,7 @@ def make_tiles(
     """
     fname = filename.strip()
     if not fname:
-        raise ValueError("make_tiles: filename cannot be empty")
+        raise ValueError("makeTiles: filename cannot be empty")
     opt = spatoptions(filename="", overwrite=overwrite)
     buf = [int(buffer)]
     if isinstance(y, SpatRaster):
@@ -248,14 +248,14 @@ def make_tiles(
         else:
             ys = [int(v) for v in y]
             if len(ys) == 0:
-                raise ValueError("make_tiles: 'y' is empty")
+                raise ValueError("makeTiles: 'y' is empty")
             if len(ys) > 2:
-                raise ValueError("make_tiles: expected one or two numbers")
+                raise ValueError("makeTiles: expected one or two numbers")
             if len(ys) == 1:
                 ys = [ys[0], ys[0]]
         template = _template_from_factors(x, ys)
         ff = _cpp_make_tiles(x, template, bool(extend), buf, bool(na_rm), fname, opt)
-    messages(x, "make_tiles")
+    messages(x, "makeTiles")
     return [str(f) for f in ff]
 
 
@@ -291,13 +291,13 @@ def _tile_apply_extents(
 ) -> List[dict]:
     """Return ``[{'outer': [...], 'inner': [...]}, ...]`` for each tile.
 
-    Mirrors ``.tile_apply_extents`` in ``R/tile_apply.R``: for the auto
+    Mirrors ``.tile_apply_extents`` in ``R/tileApply.R``: for the auto
     path, expand each inner tile by *buffer* cells (clamped to *x*'s
     extent); for explicit tiles trust the caller (outer == inner)."""
     if tiles is None:
-        inner = get_tile_extents(x, cores=cores)
+        inner = getTileExtents(x, cores=cores)
         if buffer > 0:
-            outer = get_tile_extents(x, cores=cores, buffer=int(buffer))
+            outer = getTileExtents(x, cores=cores, buffer=int(buffer))
             ev = list(x.extent.vector)  # xmin, xmax, ymin, ymax
             out: List[dict] = []
             for j in range(inner.shape[0]):
@@ -317,14 +317,14 @@ def _tile_apply_extents(
     if isinstance(tiles, np.ndarray):
         if tiles.ndim != 2 or tiles.shape[1] != 4:
             raise ValueError(
-                "tile_apply: matrix 'tiles' must have 4 columns: "
+                "tileApply: matrix 'tiles' must have 4 columns: "
                 "xmin, xmax, ymin, ymax"
             )
         return _identity_pairs(tiles)
 
     if isinstance(tiles, list):
         if len(tiles) == 0:
-            raise ValueError("tile_apply: 'tiles' is empty")
+            raise ValueError("tileApply: 'tiles' is empty")
         # A list of (Extent or length-4 numeric)?
         first = tiles[0]
         if isinstance(first, SpatExtent) or _is_extent_4tuple(first):
@@ -336,7 +336,7 @@ def _tile_apply_extents(
                     v = [float(z) for z in t]; out.append(_pair(v, v))
                 else:
                     raise ValueError(
-                        "tile_apply: list elements of 'tiles' must be a "
+                        "tileApply: list elements of 'tiles' must be a "
                         "SpatExtent or a length-4 numeric "
                         "(xmin, xmax, ymin, ymax)"
                     )
@@ -345,23 +345,23 @@ def _tile_apply_extents(
         if len(tiles) <= 2 and all(
             isinstance(v, (int, float, np.integer, np.floating)) for v in tiles
         ):
-            m = get_tile_extents(x, list(tiles))
+            m = getTileExtents(x, list(tiles))
             return _identity_pairs(m)
         raise ValueError(
-            "tile_apply: 'tiles' list must contain SpatExtents or be a "
+            "tileApply: 'tiles' list must contain SpatExtents or be a "
             "length-1/2 (rows, cols)"
         )
 
     if isinstance(tiles, (SpatRaster, SpatVector)):
-        m = get_tile_extents(x, tiles)
+        m = getTileExtents(x, tiles)
         return _identity_pairs(m)
 
     if isinstance(tiles, (int, float, np.integer, np.floating)):
-        m = get_tile_extents(x, [int(tiles), int(tiles)])
+        m = getTileExtents(x, [int(tiles), int(tiles)])
         return _identity_pairs(m)
 
     raise ValueError(
-        "tile_apply: 'tiles' must be None (auto), a SpatExtent, a list of "
+        "tileApply: 'tiles' must be None (auto), a SpatExtent, a list of "
         "SpatExtents, a 4-column numpy matrix of extents, a SpatRaster or "
         "SpatVector defining tile geometry, or one or two numbers (rows, cols)"
     )
@@ -398,25 +398,25 @@ def _tile_worker(args: tuple) -> str:
     from tappa._terra import SpatExtent, SpatRaster as _SR
     from tappa.generics import crop as _crop
     from tappa.rast import rast
-    from tappa.window import set_window
-    from tappa.write import write_raster
+    from tappa.window import setWindow
+    from tappa.write import writeRaster
 
     fun = _deserialize_fun(fun_blob)
     kwargs = _deserialize_fun(kw_blob) if kw_blob else {}
 
     x = rast(src)
     e = SpatExtent(*outer)
-    x = set_window(x, e)
+    x = setWindow(x, e)
     r = fun(x, **kwargs)
     if not isinstance(r, _SR):
-        raise RuntimeError("tile_apply: 'fun' must return a SpatRaster for every tile")
+        raise RuntimeError("tileApply: 'fun' must return a SpatRaster for every tile")
     if outer != inner:
         ie = SpatExtent(*inner)
         r = _crop(r, ie, snap="near")
     if datatype:
-        write_raster(r, out_file, overwrite=True, datatype=datatype)
+        writeRaster(r, out_file, overwrite=True, datatype=datatype)
     else:
-        write_raster(r, out_file, overwrite=True)
+        writeRaster(r, out_file, overwrite=True)
     return out_file
 
 
@@ -440,16 +440,16 @@ def _ensure_file_backed(x: SpatRaster) -> tuple:
         os.unlink(tmp)
     except OSError:
         pass
-    from .write import write_raster
-    write_raster(x, tmp, overwrite=True)
+    from .write import writeRaster
+    writeRaster(x, tmp, overwrite=True)
     return tmp, True
 
 
 # ---------------------------------------------------------------------------
-# tile_apply
+# tileApply
 # ---------------------------------------------------------------------------
 
-def tile_apply(
+def tileApply(
     x: SpatRaster,
     fun: Callable[..., SpatRaster],
     cores: int = 1,
@@ -465,7 +465,7 @@ def tile_apply(
     """
     Apply *fun* to each tile of *x* and assemble the per-tile results.
 
-    Mirrors ``R::terra::tile_apply``. The function is run in a separate
+    Mirrors ``R::terra::tileApply``. The function is run in a separate
     process per tile when ``cores > 1`` (via
     :class:`concurrent.futures.ProcessPoolExecutor`). Workers always
     write their per-tile result to disk, so the parent process never
@@ -516,20 +516,20 @@ def tile_apply(
     SpatRaster
     """
     if not isinstance(x, SpatRaster):
-        raise TypeError("tile_apply: 'x' must be a SpatRaster")
+        raise TypeError("tileApply: 'x' must be a SpatRaster")
     # SpatRaster.hasWindow() returns one bool per source (a vector); the
     # raster has a window when *any* source has one set.
     if any(x.hasWindow()):
         raise ValueError(
-            "tile_apply: 'x' already has a window set; "
-            "remove it first with remove_window(x)"
+            "tileApply: 'x' already has a window set; "
+            "remove it first with removeWindow(x)"
         )
     if not callable(fun):
-        raise TypeError("tile_apply: 'fun' must be callable")
+        raise TypeError("tileApply: 'fun' must be callable")
 
     if tiles is not None and buffer > 0:
         warnings.warn(
-            "tile_apply: 'buffer' is only used when 'tiles' is None; ignoring it",
+            "tileApply: 'buffer' is only used when 'tiles' is None; ignoring it",
             stacklevel=2,
         )
         buffer = 0
@@ -538,7 +538,7 @@ def tile_apply(
     exts = _tile_apply_extents(x, tiles, cores=ncores, buffer=int(buffer))
     ntiles = len(exts)
     if ntiles == 0:
-        raise ValueError("tile_apply: no tiles to process")
+        raise ValueError("tileApply: no tiles to process")
 
     tdir = tempfile.mkdtemp(prefix="tile_apply_")
     tile_files = [os.path.join(tdir, f"tile_{i:05d}.tif") for i in range(ntiles)]
@@ -573,26 +573,26 @@ def tile_apply(
         else:
             # sequential path - same disk-streaming contract as the workers
             from .generics import crop as _crop
-            from .window import set_window
-            from .write import write_raster
+            from .window import setWindow
+            from .write import writeRaster
 
             out_files = []
             for i, p in enumerate(exts):
                 y = x.deepcopy()
                 e = SpatExtent(*p["outer"])
-                y = set_window(y, e)
+                y = setWindow(y, e)
                 r = fun(y, **kwargs)
                 if not isinstance(r, SpatRaster):
                     raise RuntimeError(
-                        "tile_apply: 'fun' must return a SpatRaster for every tile"
+                        "tileApply: 'fun' must return a SpatRaster for every tile"
                     )
                 if p["outer"] != p["inner"]:
                     ie = SpatExtent(*p["inner"])
                     r = _crop(r, ie, snap="near")
                 if datatype:
-                    write_raster(r, tile_files[i], overwrite=True, datatype=datatype)
+                    writeRaster(r, tile_files[i], overwrite=True, datatype=datatype)
                 else:
-                    write_raster(r, tile_files[i], overwrite=True)
+                    writeRaster(r, tile_files[i], overwrite=True)
                 out_files.append(tile_files[i])
                 del r, y
 
@@ -621,7 +621,7 @@ def tile_apply(
             # Cheap, lossless VRT assembly. Correct for non-overlapping
             # tiles (the auto-sized default); for overlapping tiles GDAL
             # keeps the value of the last tile drawn, so use overlap_fun
-            # when tiles were built with get_tile_extents(buffer=).
+            # when tiles were built with getTileExtents(buffer=).
             vrtfile = os.path.join(tdir, "all.vrt")
             rasters = [_rast(f) for f in out_files]
             rc = sprc(rasters)
@@ -630,8 +630,8 @@ def tile_apply(
             vrt_path = rc.make_vrt(filename=vrtfile, overwrite=True)
             v = _rast(str(vrt_path))
             if filename:
-                from .write import write_raster
-                out = write_raster(v, filename, overwrite=overwrite, datatype=datatype)
+                from .write import writeRaster
+                out = writeRaster(v, filename, overwrite=overwrite, datatype=datatype)
                 return out
             keep_tiles = True
             return v

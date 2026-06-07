@@ -8,10 +8,10 @@ import pandas as pd
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.levels import (
-    levels, set_levels,
-    cats, drop_levels, catalyze,
+    levels, setLevels,
+    cats, dropLevels, catalyze,
 )
 
 
@@ -23,27 +23,27 @@ def make_r():
     np.random.seed(0)
     r = rast(nrows=10, ncols=10)
     v = np.random.choice([1, 2, 3], size=100).astype(float)
-    return set_values(r, v)
+    return setValues(r, v)
 
 
 def test_cats_roundtrip():
-    """Categories set with set_levels() can be retrieved with cats()."""
+    """Categories set with setLevels() can be retrieved with cats()."""
     r = make_r()
     lv = pd.DataFrame({"id": [1, 2, 3, 4],
                        "cover": ["forest", "water", "urban", "other"]})
-    r = set_levels(r, lv)
+    r = setLevels(r, lv)
     v = cats(r)[0]
     assert list(v["id"]) == [1, 2, 3, 4]
     assert list(v["cover"]) == ["forest", "water", "urban", "other"]
 
 
 def test_drop_levels():
-    """drop_levels() removes categories not present in the data."""
+    """dropLevels() removes categories not present in the data."""
     r = make_r()
     lv = pd.DataFrame({"id": [1, 2, 3, 4],
                        "cover": ["forest", "water", "urban", "other"]})
-    r = set_levels(r, lv)
-    r = drop_levels(r)
+    r = setLevels(r, lv)
+    r = dropLevels(r)
     remaining = cats(r)[0]
     # values are 1,2,3 only → 'other' (id=4) should be removed
     assert 4 not in list(remaining["id"])
@@ -54,11 +54,11 @@ def test_catalyze_nlyr():
     """catalyze() converts a factor raster to numeric layers."""
     np.random.seed(1)
     r = rast(nrows=10, ncols=10)
-    r = set_values(r, np.random.choice(np.arange(1, 6), size=100).astype(float))
+    r = setValues(r, np.random.choice(np.arange(1, 6), size=100).astype(float))
     lv = pd.DataFrame({"ID": range(1, 6),
                        "val1": range(101, 106),
                        "val2": [v * 0.1 for v in range(1, 6)]})
-    r = set_levels(r, lv)
+    r = setLevels(r, lv)
     r_cat = catalyze(r)
     assert r_cat.nlyr() == 2
 
@@ -66,11 +66,11 @@ def test_catalyze_nlyr():
 def test_catalyze_layer_names():
     np.random.seed(1)
     r = rast(nrows=10, ncols=10)
-    r = set_values(r, np.random.choice(np.arange(1, 6), size=100).astype(float))
+    r = setValues(r, np.random.choice(np.arange(1, 6), size=100).astype(float))
     lv = pd.DataFrame({"ID": range(1, 6),
                        "val1": range(101, 106),
                        "val2": [v * 0.1 for v in range(1, 6)]})
-    r = set_levels(r, lv)
+    r = setLevels(r, lv)
     r_cat = catalyze(r)
     names = list(r_cat.names)
     assert "val1" in names
@@ -82,17 +82,17 @@ def test_catalyze_val1_values():
     np.random.seed(1)
     r = rast(nrows=10, ncols=10)
     v_orig = np.random.choice(np.arange(1, 6), size=100).astype(float)
-    r = set_values(r, v_orig)
+    r = setValues(r, v_orig)
     lv = pd.DataFrame({"ID": range(1, 6),
                        "val1": range(101, 106),
                        "val2": [v * 0.1 for v in range(1, 6)]})
-    r = set_levels(r, lv)
+    r = setLevels(r, lv)
     r_cat = catalyze(r)
     # Retrieve val1 layer (layer 0)
     opt = pt.SpatOptions()
     r_val1 = r_cat.subset([0], opt)
     v_cat1 = _vals(r_val1)
-    # Re-read the original values (may have been modified by set_levels)
+    # Re-read the original values (may have been modified by setLevels)
     v_r = _vals(r)
     np.testing.assert_array_equal(v_cat1, v_r + 100)
 

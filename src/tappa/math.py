@@ -188,17 +188,17 @@ def cummin(x: SpatRaster, **kw) -> SpatRaster:
 # SpatExtent math
 # ---------------------------------------------------------------------------
 
-def floor_ext(x: SpatExtent) -> SpatExtent:
+def floorExt(x: SpatExtent) -> SpatExtent:
     """Return a copy of *x* with floor-rounded coordinates."""
     return x.floor()
 
 
-def ceiling_ext(x: SpatExtent) -> SpatExtent:
+def ceilingExt(x: SpatExtent) -> SpatExtent:
     """Return a copy of *x* with ceiling-rounded coordinates."""
     return x.ceil()
 
 
-def round_ext(x: SpatExtent, digits: int = 0) -> SpatExtent:
+def roundExt(x: SpatExtent, digits: int = 0) -> SpatExtent:
     """Return a copy of *x* with rounded coordinates."""
     return x.round(int(digits))
 

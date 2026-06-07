@@ -13,11 +13,11 @@ from __future__ import annotations
 from typing import Any, Type, Tuple
 
 __all__ = [
-    "repr_extent",
-    "repr_raster",
-    "repr_vector",
+    "reprExtent",
+    "reprRaster",
+    "reprVector",
     "show",
-    "register_reprs",
+    "registerReprs",
 ]
 
 
@@ -26,15 +26,15 @@ def _show_text(obj: Any) -> str:
     return obj.show().rstrip("\n")
 
 
-def repr_extent(e: Any) -> str:
+def reprExtent(e: Any) -> str:
     return _show_text(e)
 
 
-def repr_raster(r: Any) -> str:
+def reprRaster(r: Any) -> str:
     return _show_text(r)
 
 
-def repr_vector(v: Any) -> str:
+def reprVector(v: Any) -> str:
     return _show_text(v)
 
 
@@ -65,7 +65,7 @@ def show(obj: Any) -> None:
         print(repr(obj))
 
 
-def register_reprs() -> None:
+def registerReprs() -> None:
     """
     Attach ``__repr__`` and ``__str__`` to the pybind11 types so the REPL shows
     the C++ ``show()`` text automatically.

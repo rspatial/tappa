@@ -7,7 +7,7 @@ from typing import Optional, Union
 import numpy as np
 
 from ._terra import SpatRaster, SpatVector, SpatExtent, SpatOptions
-from ._helpers import messages, character_crs
+from ._helpers import messages, characterCRS
 
 
 def _opt() -> SpatOptions:
@@ -15,10 +15,10 @@ def _opt() -> SpatOptions:
 
 
 # ---------------------------------------------------------------------------
-# as_polygons
+# asPolygons
 # ---------------------------------------------------------------------------
 
-def as_polygons(
+def asPolygons(
     x: Union[SpatRaster, SpatExtent, SpatVector],
     *,
     round: bool = True,
@@ -58,35 +58,35 @@ def as_polygons(
     SpatVector
     """
     if isinstance(x, SpatExtent):
-        crs_str = character_crs(crs, "as_polygons")
+        crs_str = characterCRS(crs, "asPolygons")
         v = SpatVector(x, crs_str)
-        return messages(v, "as_polygons")
+        return messages(v, "asPolygons")
     if isinstance(x, SpatVector):
         if extent:
             from .extent import ext as make_ext
             from .crs import crs as get_crs
             e = make_ext(x)
-            return as_polygons(e, crs=get_crs(x))
+            return asPolygons(e, crs=get_crs(x))
         if x.geomtype() == "points":
-            x = as_lines(x)
+            x = asLines(x)
         xc = x.polygonize()
-        return messages(xc, "as_polygons")
+        return messages(xc, "asPolygons")
     # SpatRaster
     if extent:
         v = x.dense_extent(False, False)
-        messages(x, "as_polygons")
-        return messages(v, "as_polygons")
+        messages(x, "asPolygons")
+        return messages(v, "asPolygons")
     opt = _opt()
-    v = x.as_polygons(round, aggregate, values, na_rm, na_all, digits, opt)
-    messages(x, "as_polygons")
-    return messages(v, "as_polygons")
+    v = x.asPolygons(round, aggregate, values, na_rm, na_all, digits, opt)
+    messages(x, "asPolygons")
+    return messages(v, "asPolygons")
 
 
 # ---------------------------------------------------------------------------
-# as_lines
+# asLines
 # ---------------------------------------------------------------------------
 
-def as_lines(
+def asLines(
     x: Union[SpatRaster, SpatExtent, SpatVector, np.ndarray],
     *,
     na_rm: bool = False,
@@ -111,23 +111,23 @@ def as_lines(
     SpatVector
     """
     if isinstance(x, SpatExtent):
-        return as_lines(as_polygons(x, crs=crs))
+        return asLines(asPolygons(x, crs=crs))
     if isinstance(x, SpatRaster):
         if na_rm:
-            p = as_polygons(x[0:1], round=False, aggregate=False, values=False, na_rm=True)
-            return as_lines(p)
+            p = asPolygons(x[0:1], round=False, aggregate=False, values=False, na_rm=True)
+            return asLines(p)
         opt = _opt()
-        v = x.as_lines(opt)
-        return messages(v, "as_lines")
+        v = x.asLines(opt)
+        return messages(v, "asLines")
     if isinstance(x, SpatVector):
-        xc = x.as_lines()
-        return messages(xc, "as_lines")
+        xc = x.asLines()
+        return messages(xc, "asLines")
     if isinstance(x, np.ndarray):
         arr = np.asarray(x, dtype=float)
         if arr.ndim == 1:
             arr = arr.reshape(1, -1)
         v = SpatVector()
-        crs_str = character_crs(crs, "as_lines")
+        crs_str = characterCRS(crs, "asLines")
         if arr.shape[1] == 2:
             nr = len(arr)
             v.setGeometry("lines",
@@ -142,19 +142,19 @@ def as_lines(
             v.setLinesStartEnd(arr, crs_str)
         else:
             raise ValueError("ndarray must have 2 or 4 columns")
-        result = messages(v, "as_lines")
+        result = messages(v, "asLines")
         if segments:
-            from .geom import disagg_vect
-            return disagg_vect(result, segments=True)
+            from .geom import disaggVect
+            return disaggVect(result, segments=True)
         return result
-    raise TypeError(f"as_lines: unsupported type {type(x)}")
+    raise TypeError(f"asLines: unsupported type {type(x)}")
 
 
 # ---------------------------------------------------------------------------
-# as_points
+# asPoints
 # ---------------------------------------------------------------------------
 
-def as_points(
+def asPoints(
     x: Union[SpatRaster, SpatExtent, SpatVector],
     *,
     values: bool = True,
@@ -179,22 +179,22 @@ def as_points(
     SpatVector
     """
     if isinstance(x, SpatExtent):
-        return as_points(as_polygons(x, crs=crs))
+        return asPoints(asPolygons(x, crs=crs))
     if isinstance(x, SpatVector):
-        xc = x.as_points()
-        return messages(xc, "as_points")
+        xc = x.asPoints()
+        return messages(xc, "asPoints")
     # SpatRaster
     opt = _opt()
-    v = x.as_points(values, na_rm, opt)
-    messages(x, "as_points")
-    return messages(v, "as_points")
+    v = x.asPoints(values, na_rm, opt)
+    messages(x, "asPoints")
+    return messages(v, "asPoints")
 
 
 # ---------------------------------------------------------------------------
-# as_array / as_matrix  (raster → numpy)
+# asArray / asMatrix  (raster → numpy)
 # ---------------------------------------------------------------------------
 
-def as_array(x: SpatRaster, na_value: float = float("nan")) -> np.ndarray:
+def asArray(x: SpatRaster, na_value: float = float("nan")) -> np.ndarray:
     """
     Return all cell values as a 3-D numpy array.
 
@@ -217,7 +217,7 @@ def as_array(x: SpatRaster, na_value: float = float("nan")) -> np.ndarray:
     return arr
 
 
-def as_matrix(
+def asMatrix(
     x: Union[SpatRaster, SpatExtent],
 ) -> np.ndarray:
     """
@@ -242,10 +242,10 @@ def as_matrix(
 
 
 # ---------------------------------------------------------------------------
-# as_data_frame  (raster → pandas)
+# asDataFrame  (raster → pandas)
 # ---------------------------------------------------------------------------
 
-def as_data_frame(
+def asDataFrame(
     x: SpatRaster,
     xy: bool = False,
     cells: bool = False,
@@ -277,7 +277,7 @@ def as_data_frame(
     try:
         import pandas as pd
     except ImportError:
-        raise ImportError("pandas is required for as_data_frame()")
+        raise ImportError("pandas is required for asDataFrame()")
 
     nr, nc = x.nrow(), x.ncol()
     nl = x.nlyr()

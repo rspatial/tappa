@@ -215,7 +215,7 @@ PYBIND11_MODULE(_terra, m) {
         .def_property_readonly("empty",        &SpatExtent::empty)
         .def("align",          &SpatExtent::align)
         .def("intersect",      &SpatExtent::intersect)
-        .def("as_points",      &SpatExtent::asPoints)
+        .def("asPoints",       &SpatExtent::asPoints)
         .def("ceil",           &SpatExtent::ceil)
         .def("compare",        &SpatExtent::compare)
         .def("floor",          &SpatExtent::floor)
@@ -373,7 +373,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("wkb_raw",      &SpatVector::wkb_raw)
         .def("hex",          &SpatVector::hex)
         .def("from_hex",     &SpatVector::from_hex)
-        .def("make_nodes",   &SpatVector::make_nodes)
+        .def("makeNodes",    &SpatVector::make_nodes)
         .def("boundary",     &SpatVector::boundary)
         .def("polygonize",   &SpatVector::polygonize)
         .def("normalize",    &SpatVector::normalize)
@@ -382,10 +382,10 @@ PYBIND11_MODULE(_terra, m) {
         .def("line_merge",   &SpatVector::line_merge)
         .def("simplify",     &SpatVector::simplify)
         .def("thin_geoms",   &SpatVector::thin_geoms)
-        .def("thin_nodes",   &SpatVector::thin_nodes)
-        .def("shared_paths",
+        .def("thinNodes",    &SpatVector::thin_nodes)
+        .def("sharedPaths",
             (SpatVector (SpatVector::*)(bool))(&SpatVector::shared_paths))
-        .def("shared_paths2",
+        .def("sharedPaths2",
             (SpatVector (SpatVector::*)(SpatVector, bool))(&SpatVector::shared_paths))
         .def("snap",         &SpatVector::snap)
         .def("snapto",       &SpatVector::snapto)
@@ -439,8 +439,8 @@ PYBIND11_MODULE(_terra, m) {
         .def("cbind",        &SpatVector::cbind)
 
         .def("area",         &SpatVector::area)
-        .def("as_lines",     &SpatVector::as_lines)
-        .def("as_points",    &SpatVector::as_points)
+        .def("asLines",      &SpatVector::as_lines)
+        .def("asPoints",     &SpatVector::as_points)
         .def("couldBeLonLat",&SpatVector::could_be_lonlat)
         .def("get_crs",      &SpatVector::getSRS)
         .def("set_crs",
@@ -511,7 +511,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("buffer",       &SpatVector::buffer)
         .def("centroid",     &SpatVector::centroid)
         .def("point_on_surface", &SpatVector::point_on_surface)
-        .def("make_valid2",  &SpatVector::make_valid2)
+        .def("makeValid",    &SpatVector::make_valid2)
         .def("flip",         &SpatVector::flip)
         .def("transpose",    &SpatVector::transpose)
         .def("shift",        &SpatVector::shift)
@@ -612,7 +612,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("addSource",       &SpatRaster::addSource)
         .def("replace",         &SpatRaster::replace)
         .def("combineSources",  &SpatRaster::combineSources)
-        .def("compare_geom",    &SpatRaster::compare_geom)
+        .def("compareGeom",     &SpatRaster::compare_geom)
         .def("couldBeLonLat",   &SpatRaster::could_be_lonlat)
         .def("deepcopy",        &SpatRaster::deepCopy)
         .def("show",
@@ -688,8 +688,8 @@ PYBIND11_MODULE(_terra, m) {
         .def(
             "time",
             [](SpatRaster &r, const std::string &format) {
-                py::object get_time = py::module_::import("tappa.time").attr("get_time");
-                return get_time(py::cast(r), py::str(format));
+                py::object getTime = py::module_::import("tappa.time").attr("getTime");
+                return getTime(py::cast(r), py::str(format));
             },
             py::arg("format") = std::string(""))
         .def_property_readonly("timestep", &SpatRaster::getTimeStep)
@@ -776,12 +776,12 @@ PYBIND11_MODULE(_terra, m) {
         .def("sum_area_group",  &SpatRaster::sum_area_group)
         .def("surface_area",    &SpatRaster::surfaceArea)
 
-        .def("as_points",       &SpatRaster::as_points)
+        .def("asPoints",        &SpatRaster::as_points)
         .def("cells_notna",     &SpatRaster::cells_notna)
         .def("cells_notna_novalues",&SpatRaster::cells_notna_novalues)
         .def("as_multipoints",  &SpatRaster::as_multipoints)
-        .def("as_lines",        &SpatRaster::as_lines)
-        .def("as_polygons",     &SpatRaster::as_polygons)
+        .def("asLines",         &SpatRaster::as_lines)
+        .def("asPolygons",      &SpatRaster::as_polygons)
         .def("polygonize",      &SpatRaster::polygonize)
 
         .def("atan2",           &SpatRaster::atan_2)
@@ -808,7 +808,7 @@ PYBIND11_MODULE(_terra, m) {
 
         .def("get_tiles_ext",      &SpatRaster::get_tiles_extent)
         .def("get_tiles_ext_vect", &SpatRaster::get_tiles_extent_vect)
-        .def("make_tiles",         &SpatRaster::make_tiles)
+        .def("makeTiles",          &SpatRaster::make_tiles)
         .def("make_tiles_vect",    &SpatRaster::make_tiles_vect)
         .def("ext_from_rc",        &SpatRaster::ext_from_rc)
 
@@ -816,7 +816,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("droplevels",   &SpatRaster::dropLevels)
         .def("clamp",        &SpatRaster::clamp)
         .def("clamp_raster", &SpatRaster::clamp_raster)
-        .def("clamp_ts",     &SpatRaster::clamp_ts)
+        .def("clampTS",      &SpatRaster::clamp_ts)
         .def("replaceValues",&SpatRaster::replaceValues)
         .def("lookup_classify", &SpatRaster::lookup_classify)
         .def("lookup_subst",    &SpatRaster::lookup_subst)
@@ -906,7 +906,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("sampleRandomRaster",    &SpatRaster::sampleRandomRaster)
         .def("sampleRandomValues",    &SpatRaster::sampleRandomValues)
         .def("scale",        &SpatRaster::scale)
-        .def("scale_linear", &SpatRaster::scale_linear)
+        .def("scaleLinear",  &SpatRaster::scale_linear)
         .def("shift",        &SpatRaster::shift)
         .def("similarity",   &SpatRaster::similarity)
         .def("terrain",      &SpatRaster::terrain)

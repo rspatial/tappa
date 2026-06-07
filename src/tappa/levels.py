@@ -6,7 +6,7 @@ from typing import Optional, Union, List, Dict, Any
 
 from ._terra import SpatRaster, SpatOptions
 from ._helpers import _getSpatDF, _makeSpatDF, messages
-from .names import set_names_inplace
+from .names import setNamesInplace
 
 
 def _opt() -> SpatOptions:
@@ -21,7 +21,7 @@ def _layer_idx(x: SpatRaster, layer: Union[int, str]) -> int:
 
 
 # ---------------------------------------------------------------------------
-# is_factor / as_factor
+# is_factor / asFactor
 # ---------------------------------------------------------------------------
 
 def is_factor(x: SpatRaster) -> List[bool]:
@@ -29,11 +29,11 @@ def is_factor(x: SpatRaster) -> List[bool]:
     return list(x.hasCategories())
 
 
-def as_factor(x: SpatRaster) -> SpatRaster:
+def asFactor(x: SpatRaster) -> SpatRaster:
     """Convert *x* to a categorical raster (in-place on a copy)."""
     x = x.deepcopy() if hasattr(x, 'deepcopy') else x
     x.pntr = x.makeCategorical(-1, _opt())
-    return messages(x, "as_factor")
+    return messages(x, "asFactor")
 
 
 # ---------------------------------------------------------------------------
@@ -72,7 +72,7 @@ def levels(x: SpatRaster, layer: Optional[Union[int, str]] = None) -> List[Any]:
     return result
 
 
-def set_levels(x: SpatRaster, value: Union[List, Any], active: int = 1) -> SpatRaster:
+def setLevels(x: SpatRaster, value: Union[List, Any], active: int = 1) -> SpatRaster:
     """
     Set the categorical lookup table for *x*.
 
@@ -95,12 +95,12 @@ def set_levels(x: SpatRaster, value: Union[List, Any], active: int = 1) -> SpatR
         if v is None:
             xc.removeCategories(i)
         else:
-            set_cats(xc, i, v, active)
+            setCats(xc, i, v, active)
     return xc
 
 
 # ---------------------------------------------------------------------------
-# cats / set_cats / categories
+# cats / setCats / categories
 # ---------------------------------------------------------------------------
 
 def cats(x: SpatRaster, layer: Optional[Union[int, str]] = None) -> List[Any]:
@@ -132,7 +132,7 @@ def cats(x: SpatRaster, layer: Optional[Union[int, str]] = None) -> List[Any]:
     return result
 
 
-def set_cats(
+def setCats(
     x: SpatRaster,
     layer: Union[int, str] = 0,
     value: Any = None,
@@ -196,15 +196,15 @@ def categories(
     SpatRaster
     """
     xc = x.deepcopy() if hasattr(x, 'deepcopy') else x
-    set_cats(xc, layer, value, active)
+    setCats(xc, layer, value, active)
     return xc
 
 
 # ---------------------------------------------------------------------------
-# active_cat
+# activeCat
 # ---------------------------------------------------------------------------
 
-def active_cat(x: SpatRaster, layer: Union[int, str] = 0) -> int:
+def activeCat(x: SpatRaster, layer: Union[int, str] = 0) -> int:
     """
     Return the index of the active label column for a categorical layer.
 
@@ -222,7 +222,7 @@ def active_cat(x: SpatRaster, layer: Union[int, str] = 0) -> int:
     return int(x.getCatIndex(_layer_idx(x, layer)))
 
 
-def set_active_cat(
+def setActiveCat(
     x: SpatRaster,
     value: Union[int, str],
     layer: Union[int, str] = 0,
@@ -259,10 +259,10 @@ def set_active_cat(
 
 
 # ---------------------------------------------------------------------------
-# add_cats / concats / catalyze / drop_levels
+# addCats / concats / catalyze / dropLevels
 # ---------------------------------------------------------------------------
 
-def add_cats(
+def addCats(
     x: SpatRaster,
     value: Any,
     merge: bool = False,
@@ -303,10 +303,10 @@ def add_cats(
     return categories(x, layer=li, value=cts, active=nact)
 
 
-def drop_levels(x: SpatRaster) -> SpatRaster:
+def dropLevels(x: SpatRaster) -> SpatRaster:
     """Drop unused levels from all categorical layers."""
     xc = x.droplevels()
-    return messages(xc, "drop_levels")
+    return messages(xc, "dropLevels")
 
 
 def concats(x: SpatRaster, y: SpatRaster) -> SpatRaster:
@@ -342,7 +342,7 @@ def catalyze(x: SpatRaster) -> SpatRaster:
     xc = x.lookup_catalyze(from_vals, to_vals_list, opt)
     result = messages(xc, "catalyze")
     if nms:
-        set_names_inplace(result, [str(n) for n in nms])
+        setNamesInplace(result, [str(n) for n in nms])
     return result
 
 
@@ -376,7 +376,7 @@ def coltab(x: SpatRaster) -> List[Any]:
     return result
 
 
-def set_coltab(
+def setColtab(
     x: SpatRaster,
     value: Any,
     layer: Union[int, str] = 0,

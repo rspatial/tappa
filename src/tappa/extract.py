@@ -212,7 +212,7 @@ def extract(
     return df
 
 
-def extract_xy(
+def extractXY(
     x: SpatRaster,
     xy: Union["np.ndarray", List],
     method: str = "simple",

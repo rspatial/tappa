@@ -15,12 +15,12 @@ def _opt() -> SpatOptions:
 # SpatRaster layer names
 # ---------------------------------------------------------------------------
 
-def names_rast(x: SpatRaster) -> List[str]:
+def namesRast(x: SpatRaster) -> List[str]:
     """Return the layer names of *x*."""
     return list(x.names)
 
 
-def set_names_rast(
+def setNamesRast(
     x: SpatRaster,
     value: List[str],
     index: Optional[List[int]] = None,
@@ -71,7 +71,7 @@ def set_names_rast(
     return xc
 
 
-def set_names_inplace(
+def setNamesInplace(
     x: SpatRaster,
     value: List[str],
     index: Optional[List[int]] = None,
@@ -101,12 +101,12 @@ def set_names_inplace(
 # SpatVector attribute names
 # ---------------------------------------------------------------------------
 
-def names_vect(x: SpatVector) -> List[str]:
+def namesVect(x: SpatVector) -> List[str]:
     """Return the attribute column names of *x*."""
     return list(x.names)
 
 
-def set_names_vect(x: SpatVector, value: List[str]) -> SpatVector:
+def setNamesVect(x: SpatVector, value: List[str]) -> SpatVector:
     """
     Return a copy of *x* with new attribute column names.
 
@@ -136,7 +136,7 @@ def varnames(x: SpatRaster) -> List[str]:
     return list(x.get_sourcenames())
 
 
-def set_varnames(x: SpatRaster, value: List[str]) -> SpatRaster:
+def setVarnames(x: SpatRaster, value: List[str]) -> SpatRaster:
     """
     Return a copy of *x* with new variable names.
 
@@ -164,7 +164,7 @@ def longnames(x: SpatRaster) -> List[str]:
     return list(x.get_sourcenames_long())
 
 
-def set_longnames(x: SpatRaster, value: List[str]) -> SpatRaster:
+def setLongnames(x: SpatRaster, value: List[str]) -> SpatRaster:
     """
     Return a copy of *x* with new long names.
 

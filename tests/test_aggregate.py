@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 
 
 def _vals(r):
@@ -17,7 +17,7 @@ def make_r():
     """4×4 raster with values NA, 2..16."""
     r = rast(nrows=4, ncols=4, xmin=0, xmax=1, ymin=0, ymax=1)
     v = [float("nan")] + list(range(2, 17))
-    return set_values(r, v)
+    return setValues(r, v)
 
 
 def _approx_or_nan(a, e):

@@ -11,6 +11,13 @@ if TYPE_CHECKING:
     pass
 
 
+# Capture the raw pybind11 C++ method before methods.py patches the class
+# with the same-named Python wrapper (``SpatRaster.setValues`` exists as both
+# a C++ method and a Python wrapper after the rename to camelCase; methods.py
+# overrides the class attribute, so we save the raw C++ binding here).
+_cpp_setValues = SpatRaster.setValues
+
+
 def _opt() -> SpatOptions:
     return SpatOptions()
 
@@ -43,7 +50,7 @@ def has_min_max(x: SpatRaster) -> List[bool]:
     return list(x.hasRange)
 
 
-def min_max(x: SpatRaster, compute: bool = False) -> dict:
+def minMax(x: SpatRaster, compute: bool = False) -> dict:
     """
     Return the stored or computed min and max values for each layer.
 
@@ -65,7 +72,7 @@ def min_max(x: SpatRaster, compute: bool = False) -> dict:
     return {"min": mins, "max": maxs}
 
 
-def set_min_max(x: SpatRaster, force: bool = False) -> SpatRaster:
+def setMinMax(x: SpatRaster, force: bool = False) -> SpatRaster:
     """Compute and store min/max values in *x*."""
     opt = _opt()
     x.setRange(opt, force)
@@ -116,7 +123,7 @@ def values(
     return arr
 
 
-def set_values(x: SpatRaster, v: Union[np.ndarray, List, float]) -> SpatRaster:
+def setValues(x: SpatRaster, v: Union[np.ndarray, List, float]) -> SpatRaster:
     """
     Assign new cell values to a copy of *x*.
 
@@ -138,7 +145,7 @@ def set_values(x: SpatRaster, v: Union[np.ndarray, List, float]) -> SpatRaster:
     if np.ndim(v) == 0:
         val = float(np.asarray(v))
         n = x.nrow() * x.ncol() * x.nlyr()
-        y.setValues([val] * n, opt)
+        _cpp_setValues(y, [val] * n, opt)
     else:
         flat = np.asarray(v, dtype=float).ravel()
         nc = x.nrow() * x.ncol()
@@ -148,7 +155,7 @@ def set_values(x: SpatRaster, v: Union[np.ndarray, List, float]) -> SpatRaster:
             flat = np.resize(flat, need)
         elif len(flat) > need:
             flat = flat[:need]
-        y.setValues(flat.tolist(), opt)
+        _cpp_setValues(y, flat.tolist(), opt)
     return y
 
 
@@ -156,7 +163,7 @@ def set_values(x: SpatRaster, v: Union[np.ndarray, List, float]) -> SpatRaster:
 # focal values
 # ---------------------------------------------------------------------------
 
-def focal_values(
+def focalValues(
     x: SpatRaster,
     w: Union[int, List[int]] = 3,
     row: int = 0,
@@ -194,19 +201,19 @@ def focal_values(
 # SpatVector values
 # ---------------------------------------------------------------------------
 
-def vect_values(x: SpatVector) -> "pd.DataFrame":
+def vectValues(x: SpatVector) -> "pd.DataFrame":
     """
     Return the attribute table of *x* as a pandas DataFrame.
     """
     try:
         import pandas as pd
     except ImportError:
-        raise ImportError("pandas is required for vect_values()")
+        raise ImportError("pandas is required for vectValues()")
     from ._helpers import _getSpatDF
     return _getSpatDF(x.df)
 
 
-def set_vect_values(x: SpatVector, df: "pd.DataFrame") -> SpatVector:
+def setVectValues(x: SpatVector, df: "pd.DataFrame") -> SpatVector:
     """
     Set attribute table of a copy of *x*.
 
@@ -224,10 +231,10 @@ def set_vect_values(x: SpatVector, df: "pd.DataFrame") -> SpatVector:
 
 
 # ---------------------------------------------------------------------------
-# compare_geom
+# compareGeom
 # ---------------------------------------------------------------------------
 
-def compare_geom(
+def compareGeom(
     x: SpatRaster,
     y: SpatRaster,
     lyrs: bool = False,
@@ -269,7 +276,7 @@ def compare_geom(
     if tolerance is None:
         opt = spatoptions()
         tolerance = opt.tolerance
-    result = x.compare_geom(y, lyrs, crs, tolerance, warncrs, ext, rowcol, res)
+    result = x.compareGeom(y, lyrs, crs, tolerance, warncrs, ext, rowcol, res)
     if not result and stop_on_error:
         msgs = []
         if x.has_error():

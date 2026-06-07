@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any, List, Optional
 
-from ._helpers import character_crs, messages
+from ._helpers import characterCRS, messages
 from ._terra import SpatExtent, SpatVector
 
 __all__ = ["vect"]
@@ -30,7 +30,7 @@ def _vect_xy_matrix(x: Any, crs: str) -> SpatVector:
         raise ValueError("vect: coordinate matrix must have shape (n, 2) with columns [x, y]")
     v = SpatVector()
     if crs:
-        v.set_crs(character_crs(crs, "vect"))
+        v.set_crs(characterCRS(crs, "vect"))
     v.setPointsXY(arr[:, 0].tolist(), arr[:, 1].tolist())
     return messages(v, "vect")
 
@@ -64,7 +64,7 @@ def _vect_geom_matrix(x: Any, geom_type: str, crs: str) -> SpatVector:
 
     v = SpatVector()
     if crs:
-        v.set_crs(character_crs(crs, "vect"))
+        v.set_crs(characterCRS(crs, "vect"))
     v.setGeometry(geom_type, ids, parts, xs, ys, holes)
     return messages(v, "vect")
 
@@ -114,7 +114,7 @@ def vect(
         return messages(v, "vect")
 
     if isinstance(x, SpatExtent):
-        crs_use = character_crs(crs, "vect") if crs else ""
+        crs_use = characterCRS(crs, "vect") if crs else ""
         v = SpatVector(x, crs_use)
         return messages(v, "vect")
 
@@ -123,7 +123,7 @@ def vect(
         if _looks_like_wkt(s):
             v = SpatVector([s.replace("\n", "")])
             if crs:
-                v.set_crs(character_crs(crs, "vect"))
+                v.set_crs(characterCRS(crs, "vect"))
             return messages(v, "vect")
 
         path = _normalize_path(s)
@@ -135,13 +135,13 @@ def vect(
         if not ok:
             messages(v, "vect")
         if crs:
-            v.set_crs(character_crs(crs, "vect"))
+            v.set_crs(characterCRS(crs, "vect"))
         return messages(v, "vect")
 
     if isinstance(x, (list, tuple)) and all(isinstance(i, str) for i in x):
         v = SpatVector([s.replace("\n", "") for s in x])
         if crs:
-            v.set_crs(character_crs(crs, "vect"))
+            v.set_crs(characterCRS(crs, "vect"))
         return messages(v, "vect")
 
     try:

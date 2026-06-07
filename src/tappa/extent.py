@@ -7,7 +7,7 @@ from typing import Any, Optional
 from ._helpers import messages
 from ._terra import SpatExtent, SpatRaster, SpatVector
 
-__all__ = ["ext", "intersect_ext"]
+__all__ = ["ext", "intersectExt"]
 
 
 def ext(
@@ -88,7 +88,7 @@ def ext(
     raise TypeError("ext: invalid arguments")
 
 
-def intersect_ext(
+def intersectExt(
     e1: SpatExtent,
     e2: SpatExtent,
 ) -> "Optional[SpatExtent]":

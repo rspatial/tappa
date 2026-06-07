@@ -19,11 +19,11 @@ import matplotlib.pyplot as plt  # noqa: E402
 # ---------------------------------------------------------------------------
 
 def test_rast_stack_from_spatraster_list():
-    r1 = pt.set_values(pt.rast(nrows=4, ncols=5),
+    r1 = pt.setValues(pt.rast(nrows=4, ncols=5),
                        np.arange(1, 21, dtype=float))
-    r2 = pt.set_values(pt.rast(nrows=4, ncols=5),
+    r2 = pt.setValues(pt.rast(nrows=4, ncols=5),
                        np.arange(21, 41, dtype=float))
-    r3 = pt.set_values(pt.rast(nrows=4, ncols=5),
+    r3 = pt.setValues(pt.rast(nrows=4, ncols=5),
                        np.arange(41, 61, dtype=float))
 
     s = pt.rast([r1, r2, r3])
@@ -38,7 +38,7 @@ def test_rast_stack_from_spatraster_list():
 
 
 def test_rast_stack_single_element_returns_deep_copy():
-    r = pt.set_values(pt.rast(nrows=2, ncols=2),
+    r = pt.setValues(pt.rast(nrows=2, ncols=2),
                       np.array([1.0, 2.0, 3.0, 4.0]))
     s = pt.rast([r])
     assert pt.nlyr(s) == 1
@@ -113,7 +113,7 @@ def test_polys_rejects_non_polygon():
 
 def test_overlays_compose_on_a_raster_axes():
     """`pt.plot(r)` -> `pt.points(...)` should land on the same Axes."""
-    r = pt.set_values(pt.rast(nrows=4, ncols=4, xmin=0, xmax=4, ymin=0, ymax=4),
+    r = pt.setValues(pt.rast(nrows=4, ncols=4, xmin=0, xmax=4, ymin=0, ymax=4),
                       np.arange(1, 17, dtype=float))
     ax = pt.plot(r, figsize=(3, 3))
     pts = _make_points()

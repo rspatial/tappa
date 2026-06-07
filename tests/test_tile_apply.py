@@ -25,15 +25,15 @@ from tappa._terra import SpatExtent, SpatRaster
 from tappa.extent import ext
 from tappa.focal import focal
 from tappa.rast import rast
-from tappa.tile_apply import (
+from tappa.tileApply import (
     _auto_tile_size,
     _tile_apply_extents,
-    get_tile_extents,
-    make_tiles,
-    tile_apply,
+    getTileExtents,
+    makeTiles,
+    tileApply,
 )
-from tappa.values import set_values, values
-from tappa.window import has_window, set_window
+from tappa.values import setValues, values
+from tappa.window import has_window, setWindow
 
 from path_utils import skip_if_missing_inst_ex
 
@@ -68,11 +68,11 @@ def _focal_mean(x: SpatRaster, w: int = 11) -> SpatRaster:
 
 
 # ---------------------------------------------------------------------------
-# get_tile_extents
+# getTileExtents
 # ---------------------------------------------------------------------------
 
 def test_get_tile_extents_explicit_size(elev):
-    m = get_tile_extents(elev, [30, 30])
+    m = getTileExtents(elev, [30, 30])
     assert m.shape[1] == 4
     assert m.shape[0] >= 1
     # first tile starts at the upper-left corner of the raster
@@ -82,7 +82,7 @@ def test_get_tile_extents_explicit_size(elev):
 
 
 def test_get_tile_extents_auto(elev):
-    m = get_tile_extents(elev)  # y missing -> auto
+    m = getTileExtents(elev)  # y missing -> auto
     assert m.shape[1] == 4
     assert m.shape[0] >= 1
 
@@ -102,35 +102,35 @@ def test_auto_tile_size_smaller_with_more_cores(elev):
 
 
 # ---------------------------------------------------------------------------
-# tile_apply: sequential
+# tileApply: sequential
 # ---------------------------------------------------------------------------
 
 def test_tile_apply_sequential_matches_direct(elev):
     """Auto-tiling + simple per-cell op == direct op on whole raster."""
-    out = tile_apply(elev, _double, datatype="FLT8S")
+    out = tileApply(elev, _double, datatype="FLT8S")
     ref = _double(elev)
     np.testing.assert_array_equal(_vals(out), _vals(ref))
 
 
 def test_tile_apply_explicit_tiles_size(elev):
-    out = tile_apply(elev, _double, tiles=[30, 30], datatype="FLT8S")
+    out = tileApply(elev, _double, tiles=[30, 30], datatype="FLT8S")
     ref = _double(elev)
     np.testing.assert_array_equal(_vals(out), _vals(ref))
 
 
 def test_tile_apply_explicit_tiles_extent_list(elev):
     """Provide a list of SpatExtent tiles covering the raster."""
-    m = get_tile_extents(elev, [30, 30])
+    m = getTileExtents(elev, [30, 30])
     tiles = [SpatExtent(*row) for row in m]
-    out = tile_apply(elev, _double, tiles=tiles, datatype="FLT8S")
+    out = tileApply(elev, _double, tiles=tiles, datatype="FLT8S")
     ref = _double(elev)
     np.testing.assert_array_equal(_vals(out), _vals(ref))
 
 
 def test_tile_apply_explicit_tiles_matrix(elev):
     """Pass a (N, 4) numpy matrix of extents."""
-    m = get_tile_extents(elev, [30, 30])
-    out = tile_apply(elev, _double, tiles=m, datatype="FLT8S")
+    m = getTileExtents(elev, [30, 30])
+    out = tileApply(elev, _double, tiles=m, datatype="FLT8S")
     ref = _double(elev)
     np.testing.assert_array_equal(_vals(out), _vals(ref))
 
@@ -142,7 +142,7 @@ def test_tile_apply_explicit_tiles_matrix(elev):
 def test_tile_apply_single_tile_shortcut(elev):
     """One big tile == direct op."""
     nr, nc = elev.nrow(), elev.ncol()
-    out = tile_apply(elev, _double, tiles=[nr, nc], datatype="FLT8S")
+    out = tileApply(elev, _double, tiles=[nr, nc], datatype="FLT8S")
     ref = _double(elev)
     np.testing.assert_array_equal(_vals(out), _vals(ref))
 
@@ -150,7 +150,7 @@ def test_tile_apply_single_tile_shortcut(elev):
 def test_tile_apply_writes_filename(elev, tmp_path):
     """Final output materialises to a real file when filename= is set."""
     fout = str(tmp_path / "out.tif")
-    out = tile_apply(elev, _double, tiles=[30, 30], filename=fout,
+    out = tileApply(elev, _double, tiles=[30, 30], filename=fout,
                      datatype="FLT8S")
     assert os.path.exists(fout)
     np.testing.assert_array_equal(_vals(out), _vals(_double(elev)))
@@ -161,9 +161,9 @@ def test_tile_apply_writes_filename(elev, tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_tile_apply_focal_buffer_matches_whole(elev):
-    """tile_apply(focal_mean, buffer=W//2) is bit-exact vs. focal on the whole raster
+    """tileApply(focal_mean, buffer=W//2) is bit-exact vs. focal on the whole raster
     when intermediate tiles are written as FLT8S."""
-    out = tile_apply(elev, _focal_mean, w=11, buffer=5,
+    out = tileApply(elev, _focal_mean, w=11, buffer=5,
                      tiles=None, datatype="FLT8S")
     ref = _focal_mean(elev, w=11)
 
@@ -178,7 +178,7 @@ def test_tile_apply_focal_buffer_matches_whole(elev):
 def test_tile_apply_focal_buffer_warns_with_explicit_tiles(elev):
     """buffer is ignored (with a warning) when tiles are supplied."""
     with pytest.warns(UserWarning, match="buffer"):
-        out = tile_apply(elev, _focal_mean, w=3,
+        out = tileApply(elev, _focal_mean, w=3,
                          tiles=[40, 40], buffer=2, datatype="FLT8S")
     assert isinstance(out, SpatRaster)
 
@@ -191,7 +191,7 @@ def test_tile_apply_zero_buffer_can_have_seams(elev):
     focal's ``nrow(w) <= 2 * nrow(tile)`` precondition. Larger windows
     require the buffer path (covered by ``test_tile_apply_focal_buffer_*``).
     """
-    out = tile_apply(elev, _focal_mean, w=5, buffer=0,
+    out = tileApply(elev, _focal_mean, w=5, buffer=0,
                      tiles=None, datatype="FLT8S")
     ref = _focal_mean(elev, w=5)
     v_out = _vals(out)
@@ -218,14 +218,14 @@ def test_tile_apply_zero_buffer_can_have_seams(elev):
 
 def test_tile_apply_returns_vrt_when_no_filename(elev):
     """No filename -> result is backed by a VRT pointing at the per-tile files."""
-    out = tile_apply(elev, _double, tiles=[30, 30], datatype="FLT8S")
+    out = tileApply(elev, _double, tiles=[30, 30], datatype="FLT8S")
     src = list(out.filenames())
     assert any(s.lower().endswith(".vrt") for s in src)
 
 
 def test_tile_apply_overlap_fun_assembly(elev):
     """overlap_fun='first' with non-overlapping tiles still produces correct values."""
-    out = tile_apply(elev, _double, tiles=[30, 30],
+    out = tileApply(elev, _double, tiles=[30, 30],
                      overlap_fun="first", datatype="FLT8S")
     ref = _double(elev)
     np.testing.assert_array_almost_equal(_vals(out), _vals(ref))
@@ -237,10 +237,10 @@ def test_tile_apply_overlap_fun_assembly(elev):
 
 def test_tile_apply_rejects_windowed_input(elev):
     e = ext(5.75, 5.85, 49.7, 49.8)
-    xw = set_window(elev, e)
+    xw = setWindow(elev, e)
     assert has_window(xw)
     with pytest.raises(ValueError):
-        tile_apply(xw, _double)
+        tileApply(xw, _double)
 
 
 # ---------------------------------------------------------------------------
@@ -254,9 +254,9 @@ def test_tile_apply_rejects_windowed_input(elev):
 #
 # def test_tile_apply_parallel_matches_sequential(elev):
 #     """cores=2 produces the same values as cores=1 (file-backed source)."""
-#     out_seq = tile_apply(elev, _double, cores=1, tiles=[30, 30],
+#     out_seq = tileApply(elev, _double, cores=1, tiles=[30, 30],
 #                          datatype="FLT8S")
-#     out_par = tile_apply(elev, _double, cores=2, tiles=[30, 30],
+#     out_par = tileApply(elev, _double, cores=2, tiles=[30, 30],
 #                          datatype="FLT8S")
 #     np.testing.assert_array_equal(_vals(out_seq), _vals(out_par))
 #
@@ -264,7 +264,7 @@ def test_tile_apply_rejects_windowed_input(elev):
 # def test_tile_apply_parallel_buffer_focal(elev, tmp_path):
 #     """cores=2 + auto-tiling + buffer + filename: end-to-end."""
 #     fout = str(tmp_path / "out_par.tif")
-#     out = tile_apply(elev, _focal_mean, cores=2, w=11, buffer=5,
+#     out = tileApply(elev, _focal_mean, cores=2, w=11, buffer=5,
 #                      tiles=None, filename=fout, datatype="FLT8S")
 #     assert os.path.exists(fout)
 #     ref = _focal_mean(elev, w=11)
@@ -275,12 +275,12 @@ def test_tile_apply_rejects_windowed_input(elev):
 
 
 # ---------------------------------------------------------------------------
-# make_tiles
+# makeTiles
 # ---------------------------------------------------------------------------
 
 def test_make_tiles_writes_files(elev, tmp_path):
     pat = str(tmp_path / "tile_.tif")
-    files = make_tiles(elev, [30, 30], filename=pat, overwrite=True)
+    files = makeTiles(elev, [30, 30], filename=pat, overwrite=True)
     assert len(files) >= 1
     for f in files:
         assert os.path.exists(f)

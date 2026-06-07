@@ -18,7 +18,7 @@ pytest.importorskip("tappa._terra")
 import tappa as pt
 from tappa._terra import SpatOptions, SpatRaster
 from tappa.rast import rast
-from tappa.values import set_values, values as get_values
+from tappa.values import setValues, values as get_values
 from tappa.sds import SpatRasterDataset, sds
 from tappa.sprc import SprcCollection, sprc
 
@@ -29,7 +29,7 @@ from tappa.sprc import SprcCollection, sprc
 
 def _make_rast(vals, nrow=3, ncol=3) -> SpatRaster:
     r = rast(nrows=nrow, ncols=ncol, xmin=0, xmax=1, ymin=0, ymax=1)
-    return set_values(r, list(float(v) for v in vals))
+    return setValues(r, list(float(v) for v in vals))
 
 
 def _vals(r) -> np.ndarray:
@@ -259,9 +259,9 @@ class TestSprc:
         # tile 1: x=[0,1], tile 2: x=[1,2], same y=[0,1]
         opt = SpatOptions()
         r1 = rast(nrows=3, ncols=3, xmin=0, xmax=1, ymin=0, ymax=1)
-        r1 = set_values(r1, [float(v) for v in range(1, 10)])
+        r1 = setValues(r1, [float(v) for v in range(1, 10)])
         r2 = rast(nrows=3, ncols=3, xmin=1, xmax=2, ymin=0, ymax=1)
-        r2 = set_values(r2, [float(v) * 10 for v in range(1, 10)])
+        r2 = setValues(r2, [float(v) * 10 for v in range(1, 10)])
         rc = sprc([r1, r2])
         merged = rc.merge()
         assert isinstance(merged, SpatRaster)

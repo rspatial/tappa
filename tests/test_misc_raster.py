@@ -13,7 +13,7 @@ pytest.importorskip("tappa._terra")
 
 import tappa as pt
 from tappa.rast import rast
-from tappa.values import set_values
+from tappa.values import setValues
 from tappa.generics import (
     boundaries,
     patches,
@@ -24,9 +24,9 @@ from tappa.generics import (
     nidp,
     sieve,
 )
-from tappa.distance import cost_dist, grid_dist
+from tappa.distance import costDist, gridDist
 from tappa.stats import autocor
-from tappa.subset import subset_rast
+from tappa.subset import subsetRast
 
 from path_utils import skip_if_missing_inst_ex
 
@@ -34,7 +34,7 @@ from path_utils import skip_if_missing_inst_ex
 def _first_layer(r):
     """Single-layer raster (layer 0) when *r* has multiple layers."""
     if r.nlyr() > 1:
-        return subset_rast(r, 0)
+        return subsetRast(r, 0)
     return r
 
 
@@ -55,7 +55,7 @@ def _cell_value(r, cell_1based: int):
 def test_adjacent_rook_center_1x5():
     """R cell 3 → neighbours 2 and 4 (1-based); C++ uses 0-based cell indices."""
     ra = rast(nrows=1, ncols=5, xmin=0, xmax=5, ymin=0, ymax=1, crs="local")
-    ra = set_values(ra, np.arange(1, 6, dtype=float))
+    ra = setValues(ra, np.arange(1, 6, dtype=float))
     adj = ra.adjacent([2.0], "rook", False)
     adj_arr = np.asarray(adj, dtype=float)
     neighbors = sorted(int(x) for x in adj_arr[np.isfinite(adj_arr)])
@@ -65,7 +65,7 @@ def test_adjacent_rook_center_1x5():
 def test_adjacent_queen_center_3x3():
     """Centre cell (index 4, 0-based) of a 3×3 queen grid → 8 neighbours."""
     ra = rast(nrows=3, ncols=3, xmin=0, xmax=3, ymin=0, ymax=3, crs="local")
-    ra = set_values(ra, np.arange(1, 10, dtype=float))
+    ra = setValues(ra, np.arange(1, 10, dtype=float))
     adj = ra.adjacent([4.0], "queen", False)
     adj_arr = np.asarray(adj, dtype=float)
     neighbors = sorted(int(x) for x in adj_arr[np.isfinite(adj_arr)])
@@ -75,7 +75,7 @@ def test_adjacent_queen_center_3x3():
 def test_boundaries_detects_edges():
     """Port of R: boundaries(rb, classes=TRUE) on 1x5 raster [1,1,2,2,2] → [0,1,1,0,0]."""
     rb = rast(nrows=1, ncols=5, xmin=0, xmax=5, ymin=0, ymax=1, crs="local")
-    rb = set_values(rb, np.array([1.0, 1.0, 2.0, 2.0, 2.0]))
+    rb = setValues(rb, np.array([1.0, 1.0, 2.0, 2.0, 2.0]))
     b = boundaries(rb, classes=True)
     bv = _vals(b)
     np.testing.assert_array_equal(bv, [0.0, 1.0, 1.0, 0.0, 0.0])
@@ -87,7 +87,7 @@ def test_patches_labels_connected_regions():
     vals = np.full(16, float("nan"))
     # rows 1-2, cols 1-2 in 0-based → indices 5,6,9,10
     vals[5] = vals[6] = vals[9] = vals[10] = 1.0
-    rp = set_values(rp, vals)
+    rp = setValues(rp, vals)
     pp = patches(rp)
     pv = _vals(pp)
     assert int(np.sum(pv[np.isfinite(pv)] == 1)) == 4
@@ -110,7 +110,7 @@ def test_surf_area_positive():
         crs="+proj=utm +zone=32 +datum=WGS84",
         xmin=0, xmax=1000, ymin=0, ymax=1000,
     )
-    rpj = set_values(rpj, np.random.uniform(size=100))
+    rpj = setValues(rpj, np.random.uniform(size=100))
     sa = surfArea(rpj)
     sav = _vals(sa)
     assert np.all(sav[np.isfinite(sav)] > 0)
@@ -123,12 +123,12 @@ def test_cost_dist_nonneg():
         crs="+proj=utm +zone=1 +datum=WGS84",
         xmin=0, xmax=5, ymin=0, ymax=5,
     )
-    rc = set_values(rc, np.ones(25))
+    rc = setValues(rc, np.ones(25))
     # cell index 12 (0-based) = cell 13 in R (1-based) → set to 0 (source)
     vals = np.ones(25)
     vals[12] = 0.0
-    rc = set_values(rc, vals)
-    cd = cost_dist(rc, target=0.0)
+    rc = setValues(rc, vals)
+    cd = costDist(rc, target=0.0)
     cdv = _vals(cd)
     # source cell distance should be 0
     assert cdv[12] == pytest.approx(0.0)

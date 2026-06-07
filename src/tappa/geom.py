@@ -23,18 +23,19 @@ _cpp_vect_simplify   = SpatVector.simplify
 
 __all__ = [
     # validity
-    "is_valid", "make_valid",
+    "is_valid", "makeValid",
     # set operations
-    "union_vect", "intersect_vect", "erase", "symdif", "cover_vect",
+    "unionVect", "intersectVect", "erase", "symdif", "coverVect",
     # crop / mask
-    "crop_vect", "mask_vect",
+    "cropVect", "maskVect",
     # geometry modifications
-    "buffer_vect", "disagg_vect", "flip_vect", "spin",
+    "bufferVect", "disaggVect", "flipVect", "spin",
     "hull", "delaunay", "voronoi", "elongate",
-    "merge_lines", "make_nodes", "remove_dup_nodes",
-    "simplify_geom", "thin_nodes", "thin",
-    "shared_paths", "snap_vect", "gaps",
-    "force_ccw", "width_vect", "clearance",
+    "mergeLines", "makeNodes", "removeDupNodes",
+    "simplifyGeom", "thinNodes", "thin",
+    "sharedPaths", "snapVect", "gaps",
+    "forceCCW", "widthVect", "clearance",
+    "centroids",
     # predicates
     "is_empty",
 ]
@@ -75,7 +76,7 @@ def is_valid(
     return x.geos_isvalid()
 
 
-def make_valid(x: SpatVector, buffer: bool = False) -> SpatVector:
+def makeValid(x: SpatVector, buffer: bool = False) -> SpatVector:
     """
     Attempt to fix invalid polygon geometries.
 
@@ -96,13 +97,13 @@ def make_valid(x: SpatVector, buffer: bool = False) -> SpatVector:
         x = x.buffer([0.0], 10, "round", "round", float("nan"), False)
         x.set_crs(xc)
         return messages(x, "makeValid")
-    x = x.make_valid2()
+    x = x.makeValid()
     return messages(x, "makeValid")
 
 
 # ── Set operations ───────────────────────────────────────────────────────────
 
-def union_vect(
+def unionVect(
     x: SpatVector,
     y: Optional[SpatVector] = None,
 ) -> SpatVector:
@@ -136,16 +137,16 @@ def union_vect(
     return messages(x, "union")
 
 
-def intersect_vect(x: SpatVector, y: Union[SpatVector, SpatExtent]) -> SpatVector:
+def intersectVect(x: SpatVector, y: Union[SpatVector, SpatExtent]) -> SpatVector:
     """
     Intersect a SpatVector with another SpatVector or a SpatExtent.
 
     When ``y`` is a SpatExtent, the operation is equivalent to
-    :func:`crop_vect` with the extent.
+    :func:`cropVect` with the extent.
 
     Intersecting points with points uses the extent of ``y``.  Intersecting
     points and lines is not supported; create a polygon buffer from the lines
-    first and use that with ``intersect_vect``.
+    first and use that with ``intersectVect``.
 
     Args:
         x: SpatVector.
@@ -156,7 +157,7 @@ def intersect_vect(x: SpatVector, y: Union[SpatVector, SpatExtent]) -> SpatVecto
         with combined attributes.
     """
     if isinstance(y, SpatExtent):
-        return crop_vect(x, y)
+        return cropVect(x, y)
     x = _cpp_vect_intersect(x, y, True)
     return messages(x, "intersect")
 
@@ -216,7 +217,7 @@ def symdif(x: SpatVector, y: SpatVector) -> SpatVector:
     return messages(x, "symdif")
 
 
-def cover_vect(
+def coverVect(
     x: SpatVector,
     y: SpatVector,
     identity: bool = False,
@@ -245,7 +246,7 @@ def cover_vect(
 
 # ── Crop / mask ───────────────────────────────────────────────────────────────
 
-def crop_vect(
+def cropVect(
     x: SpatVector,
     y: Union[SpatVector, SpatExtent, Any],
     use_ext: bool = False,
@@ -254,7 +255,7 @@ def crop_vect(
     Cut out a geographic subset of a SpatVector.
 
     When cropping a SpatVector with another SpatVector, the minimum convex
-    hull of ``y`` is used unless ``use_ext=True``. Unlike :func:`intersect_vect`,
+    hull of ``y`` is used unless ``use_ext=True``. Unlike :func:`intersectVect`,
     the attributes of ``y`` are not transferred to the result.
 
     You can crop a SpatVector with a rectangle (SpatExtent or any object with
@@ -287,7 +288,7 @@ def crop_vect(
     return messages(x, "crop")
 
 
-def mask_vect(
+def maskVect(
     x: SpatVector,
     mask: Union[SpatVector, SpatExtent],
     inverse: bool = False,
@@ -314,7 +315,7 @@ def mask_vect(
 
 # ── Geometry modifications ────────────────────────────────────────────────────
 
-def buffer_vect(
+def bufferVect(
     x: SpatVector,
     width: Union[float, List[float]],
     quadsegs: int = 10,
@@ -358,7 +359,7 @@ def buffer_vect(
     return messages(x, "buffer")
 
 
-def disagg_vect(x: SpatVector, segments: bool = False) -> SpatVector:
+def disaggVect(x: SpatVector, segments: bool = False) -> SpatVector:
     """
     Separate multi-part geometries into single-part geometries.
 
@@ -377,7 +378,7 @@ def disagg_vect(x: SpatVector, segments: bool = False) -> SpatVector:
     return messages(x, "disagg")
 
 
-def flip_vect(x: SpatVector, direction: str = "vertical") -> SpatVector:
+def flipVect(x: SpatVector, direction: str = "vertical") -> SpatVector:
     """
     Flip vector geometries along a vertical or horizontal axis.
 
@@ -470,7 +471,7 @@ def hull(
 def delaunay(
     x: SpatVector,
     tolerance: float = 0.0,
-    as_lines: bool = False,
+    asLines: bool = False,
     constrained: bool = False,
 ) -> SpatVector:
     """
@@ -479,14 +480,14 @@ def delaunay(
     Args:
         x: SpatVector.
         tolerance: Snapping tolerance (≥ 0). A value of 0 disables snapping.
-        as_lines: If True, return triangles as lines without the outer
+        asLines: If True, return triangles as lines without the outer
             boundary.
         constrained: If True, compute a constrained Delaunay triangulation.
 
     Returns:
-        SpatVector of polygons (or lines when ``as_lines=True``).
+        SpatVector of polygons (or lines when ``asLines=True``).
     """
-    x = x.delaunay(tolerance, as_lines, constrained)
+    x = x.delaunay(tolerance, asLines, constrained)
     return messages(x, "delaunay")
 
 
@@ -494,7 +495,7 @@ def voronoi(
     x: SpatVector,
     bnd: Optional[Any] = None,
     tolerance: float = 0.0,
-    as_lines: bool = False,
+    asLines: bool = False,
 ) -> SpatVector:
     """
     Compute the Voronoi diagram for points or the nodes of geometries.
@@ -505,16 +506,16 @@ def voronoi(
         bnd: SpatVector or SpatExtent defining the outer boundary of the
             diagram. If None (default), the boundary is derived from ``x``.
         tolerance: Snapping tolerance (≥ 0). A value of 0 disables snapping.
-        as_lines: If True, return Voronoi edges as lines without the outer
+        asLines: If True, return Voronoi edges as lines without the outer
             boundary polygon.
 
     Returns:
-        SpatVector of polygons (or lines when ``as_lines=True``).
+        SpatVector of polygons (or lines when ``asLines=True``).
     """
     if x.nrow() == 0:
         raise ValueError("voronoi: input has no geometries")
     if x.type() != "points":
-        x = x.as_points(False, True)
+        x = x.asPoints(False, True)
     if bnd is None:
         bnd_v = SpatVector()
     elif isinstance(bnd, SpatExtent):
@@ -526,7 +527,7 @@ def voronoi(
         from .extent import ext as _ext
         from .vect import vect as _vect
         bnd_v = _vect(_ext(bnd))
-    x = x.voronoi(bnd_v, tolerance, as_lines)
+    x = x.voronoi(bnd_v, tolerance, asLines)
     return messages(x, "voronoi")
 
 
@@ -549,7 +550,7 @@ def elongate(x: SpatVector, length: float = 1.0, flat: bool = False) -> SpatVect
     return messages(x, "elongate")
 
 
-def merge_lines(x: SpatVector) -> SpatVector:
+def mergeLines(x: SpatVector) -> SpatVector:
     """
     Merge line segments that share endpoints into longer lines.
 
@@ -565,7 +566,7 @@ def merge_lines(x: SpatVector) -> SpatVector:
     return messages(x, "mergeLines")
 
 
-def make_nodes(x: SpatVector) -> SpatVector:
+def makeNodes(x: SpatVector) -> SpatVector:
     """
     Create nodes (split lines) at every intersection.
 
@@ -575,11 +576,11 @@ def make_nodes(x: SpatVector) -> SpatVector:
     Returns:
         SpatVector with added nodes at all line intersections.
     """
-    x = x.make_nodes()
+    x = x.makeNodes()
     return messages(x, "makeNodes")
 
 
-def remove_dup_nodes(x: SpatVector, digits: int = -1) -> SpatVector:
+def removeDupNodes(x: SpatVector, digits: int = -1) -> SpatVector:
     """
     Remove duplicate nodes and optionally round coordinates.
 
@@ -595,7 +596,7 @@ def remove_dup_nodes(x: SpatVector, digits: int = -1) -> SpatVector:
     return messages(x, "removeDupNodes")
 
 
-def simplify_geom(
+def simplifyGeom(
     x: SpatVector,
     tolerance: float = 0.1,
     preserve_topology: bool = True,
@@ -610,7 +611,7 @@ def simplify_geom(
             the CRS (degrees for longitude/latitude).
         preserve_topology: If True, the topological relationships of the
             output geometries are preserved.
-        make_valid_after: If True, :func:`make_valid` is run on the result
+        make_valid_after: If True, :func:`makeValid` is run on the result
             to ensure that all output polygons are valid.
 
     Returns:
@@ -619,11 +620,11 @@ def simplify_geom(
     x = _cpp_vect_simplify(x, tolerance, preserve_topology)
     x = messages(x, "simplifyGeom")
     if make_valid_after:
-        x = make_valid(x)
+        x = makeValid(x)
     return x
 
 
-def thin_nodes(
+def thinNodes(
     x: SpatVector,
     threshold: float = 1e-6,
     make_valid_after: bool = True,
@@ -635,16 +636,16 @@ def thin_nodes(
         x: SpatVector of lines or polygons.
         threshold: Minimum distance between nodes. Nodes closer than this
             value are removed.
-        make_valid_after: If True, :func:`make_valid` is run on the result
+        make_valid_after: If True, :func:`makeValid` is run on the result
             to ensure validity.
 
     Returns:
         SpatVector with thinned geometries.
     """
-    x = x.thin_nodes(threshold)
+    x = x.thinNodes(threshold)
     x = messages(x, "thinNodes")
     if make_valid_after:
-        x = make_valid(x)
+        x = makeValid(x)
     return x
 
 
@@ -674,7 +675,7 @@ def thin(
     return messages(x, "thin")
 
 
-def shared_paths(
+def sharedPaths(
     x: SpatVector,
     y: Optional[SpatVector] = None,
 ) -> SpatVector:
@@ -691,14 +692,14 @@ def shared_paths(
         which input geometries share each path.
     """
     if y is None:
-        x = x.shared_paths(True)
+        x = x.sharedPaths(True)
     else:
         x = x.shared_paths2(y, True)
     x = messages(x, "sharedPaths")
     return x
 
 
-def snap_vect(
+def snapVect(
     x: SpatVector,
     y: Optional[SpatVector] = None,
     tolerance: float = 0.0,
@@ -742,7 +743,7 @@ def gaps(x: SpatVector) -> SpatVector:
     return messages(x, "gaps")
 
 
-def width_vect(x: SpatVector, as_lines: bool = False) -> Any:
+def widthVect(x: SpatVector, asLines: bool = False) -> Any:
     """
     Compute the minimum diameter of each geometry.
 
@@ -753,19 +754,19 @@ def width_vect(x: SpatVector, as_lines: bool = False) -> Any:
 
     Args:
         x: SpatVector of lines or polygons.
-        as_lines: If True, return the lines that define the minimum diameter
+        asLines: If True, return the lines that define the minimum diameter
             as a SpatVector. If False (default), return numeric widths.
 
     Returns:
         Numeric values (one per geometry), or SpatVector of lines when
-        ``as_lines=True``.
+        ``asLines=True``.
     """
     x = x.width()
     x = messages(x, "width")
     return x
 
 
-def clearance(x: SpatVector, as_lines: bool = False) -> Any:
+def clearance(x: SpatVector, asLines: bool = False) -> Any:
     """
     Compute the minimum clearance of each geometry.
 
@@ -776,19 +777,19 @@ def clearance(x: SpatVector, as_lines: bool = False) -> Any:
 
     Args:
         x: SpatVector of lines or polygons.
-        as_lines: If True, return the lines that define the clearance as a
+        asLines: If True, return the lines that define the clearance as a
             SpatVector. If False (default), return numeric clearance values.
 
     Returns:
         Numeric values (one per geometry), or SpatVector of lines when
-        ``as_lines=True``.
+        ``asLines=True``.
     """
     x = x.clearance()
     x = messages(x, "clearance")
     return x
 
 
-def force_ccw(x: SpatVector) -> SpatVector:
+def forceCCW(x: SpatVector) -> SpatVector:
     """
     Force the outer rings of polygons to follow counter-clockwise winding order.
 
@@ -801,6 +802,27 @@ def force_ccw(x: SpatVector) -> SpatVector:
     x = x.deepcopy()
     x.make_CCW()
     return messages(x, "forceCCW")
+
+
+# ── Centroids ─────────────────────────────────────────────────────────────────
+
+def centroids(x: SpatVector, inside: bool = False) -> SpatVector:
+    """
+    Geometric centroids of features (R ``terra::centroids``).
+
+    Args:
+        x: SpatVector (any geometry type).
+        inside: If True, return a ``point_on_surface``-style point that is
+            guaranteed to lie inside the geometry. If False (default),
+            return the geometric centroid (which may fall outside concave
+            polygons).
+
+    Returns:
+        SpatVector of points, one per input feature, carrying the same
+        attributes.
+    """
+    out = x.centroid(bool(inside))
+    return messages(out, "centroids")
 
 
 # ── Predicates ────────────────────────────────────────────────────────────────
