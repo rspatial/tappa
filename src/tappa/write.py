@@ -3,7 +3,7 @@ write.py — write raster and vector data to files.
 """
 from __future__ import annotations
 import os
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 
 from ._terra import SpatRaster, SpatVector, SpatOptions
 from ._helpers import messages, spatoptions
@@ -19,7 +19,24 @@ def _opt() -> SpatOptions:
 # SpatRaster write
 # ---------------------------------------------------------------------------
 
-def writeRaster(
+def write(
+    x: Union[SpatRaster, SpatVector],
+    filename: str,
+    **kwargs: Any,
+):
+    """
+    Write a :class:`SpatRaster` or :class:`SpatVector` to a file.
+    """
+    if isinstance(x, SpatRaster):
+        return _write_raster(x, filename, **kwargs)
+    if isinstance(x, SpatVector):
+        return _write_vector(x, filename, **kwargs)
+    raise TypeError(
+        f"write: expected SpatRaster or SpatVector, got {type(x).__name__}"
+    )
+
+
+def _write_raster(
     x: SpatRaster,
     filename: str,
     overwrite: bool = False,
@@ -144,7 +161,7 @@ def update(
     return x
 
 
-def writeStart(
+def write_start(
     x: SpatRaster,
     filename: str,
     overwrite: bool = False,
@@ -178,21 +195,21 @@ def writeStart(
     return b
 
 
-def writeValues(
+def write_values(
     x: SpatRaster,
     v: List[float],
     start: int,
     nrows: int,
 ) -> bool:
     """
-    Write a block of values to a file opened with writeStart().
+    Write a block of values to a file opened with write_start().
 
     Parameters
     ----------
     x : SpatRaster
     v : list of float
     start : int
-        Starting row (0-based; matches C++ / ``writeStart`` / ``blocks``).
+        Starting row (0-based; matches C++ / ``write_start`` / ``blocks``).
     nrows : int
         Number of rows in this block.
 
@@ -205,7 +222,7 @@ def writeValues(
     return bool(ok)
 
 
-def writeStop(x: SpatRaster) -> SpatRaster:
+def write_stop(x: SpatRaster) -> SpatRaster:
     """
     Finalise a block-wise write and close the file.
 
@@ -275,7 +292,7 @@ def _guess_filetype(filename: str) -> str:
     return ft
 
 
-def writeVector(
+def _write_vector(
     x: SpatVector,
     filename: str,
     filetype: Optional[str] = None,
@@ -317,11 +334,12 @@ def writeVector(
 
     # Truncate field names for Shapefiles (max 10 chars)
     if filetype == "ESRI Shapefile":
-        nms = list(x.names)
+        from .names import _cpp_layer_names, _cpp_set_vect_names
+        nms = _cpp_layer_names(x)
         truncated = [n[:10] for n in nms]
         if truncated != nms:
             xc = x.deepcopy()
-            xc.names = truncated
+            _cpp_set_vect_names(xc, truncated)
             x = xc
 
     if isinstance(options, str):

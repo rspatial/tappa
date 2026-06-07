@@ -173,7 +173,8 @@ def extract(
 
     nl = x.nlyr()
     nc = nl
-    names = list(x.names)
+    from .names import _cpp_layer_names
+    names = _cpp_layer_names(x)
     cn: List[str] = ["ID"] + names
     if cells:
         cn.append("cell")
@@ -196,7 +197,7 @@ def extract(
     if factors:
         cats = x.getCategories()
         for i, cat in enumerate(cats):
-            lnm = list(x.names)[i]
+            lnm = names[i]
             ct_df = _getSpatDF(cat.df) if cat.df.nrow > 0 else None
             if ct_df is not None and lnm in df.columns:
                 idx_col = ct_df.columns[0]
@@ -212,7 +213,7 @@ def extract(
     return df
 
 
-def extractXY(
+def extract_xy(
     x: SpatRaster,
     xy: Union["np.ndarray", List],
     method: str = "simple",

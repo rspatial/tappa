@@ -26,7 +26,7 @@ from tappa.generics import (
 )
 from tappa.distance import costDist, gridDist
 from tappa.stats import autocor
-from tappa.subset import subsetRast
+from tappa.subset import subset
 
 from path_utils import skip_if_missing_inst_ex
 
@@ -34,7 +34,7 @@ from path_utils import skip_if_missing_inst_ex
 def _first_layer(r):
     """Single-layer raster (layer 0) when *r* has multiple layers."""
     if r.nlyr() > 1:
-        return subsetRast(r, 0)
+        return subset(r, 0)
     return r
 
 

@@ -75,7 +75,8 @@ def _build_df(
         d["x"] = np.array(xy_raw[0], dtype=float)
         d["y"] = np.array(xy_raw[1], dtype=float)
     if want_values:
-        lyr_names = list(x.names) if hasattr(x, "names") else []
+        from .names import _cpp_layer_names
+        lyr_names = _cpp_layer_names(x) if hasattr(x, "names") else []
         nl = val_arr.shape[1] if val_arr.ndim == 2 else 1
         if not lyr_names or len(lyr_names) != nl:
             lyr_names = [f"lyr{i + 1}" for i in range(nl)]

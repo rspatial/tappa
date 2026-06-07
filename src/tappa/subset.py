@@ -15,11 +15,12 @@ layer indices in the sequence (used internally by ``generics`` and others).
 """
 from __future__ import annotations
 import math
-from typing import List, Optional, Sequence, Union
+from typing import Any, List, Optional, Sequence, Union
 import numpy as np
 
 from ._terra import SpatRaster, SpatVector, SpatOptions
 from ._helpers import messages, spatoptions
+from .names import _cpp_layer_names
 
 
 def _opt() -> SpatOptions:
@@ -70,7 +71,26 @@ def _normalize_indices_0based(
 # SpatRaster subset
 # ---------------------------------------------------------------------------
 
-def subsetRast(
+def subset(
+    x: Union[SpatRaster, SpatVector],
+    subset: Optional[Union[int, List, str, List[str], np.ndarray]] = None,
+    **kwargs: Any,
+) -> Union[SpatRaster, SpatVector]:
+    """
+    Subset a :class:`SpatRaster` (layers) or :class:`SpatVector` (features/columns).
+    """
+    if isinstance(x, SpatRaster):
+        if subset is None:
+            raise TypeError("subset: raster subset requires a layer selection")
+        return _subset_rast(x, subset, **kwargs)
+    if isinstance(x, SpatVector):
+        return _subset_vect(x, subset, **kwargs)
+    raise TypeError(
+        f"subset: expected SpatRaster or SpatVector, got {type(x).__name__}"
+    )
+
+
+def _subset_rast(
     x: SpatRaster,
     subset: Union[int, List, str, List[str]],
     *,
@@ -99,7 +119,7 @@ def subsetRast(
     SpatRaster
     """
     nl = x.nlyr()
-    nms = list(x.names)
+    nms = _cpp_layer_names(x)
 
     if isinstance(subset, str):
         subset = [subset]
@@ -130,7 +150,7 @@ def subsetRast(
 # SpatVector subset (by rows and columns)
 # ---------------------------------------------------------------------------
 
-def subsetVect(
+def _subset_vect(
     x: SpatVector,
     subset: Optional[Union[List[bool], List[int], np.ndarray]] = None,
     select: Optional[Union[str, List[str]]] = None,
@@ -158,11 +178,11 @@ def subsetVect(
     """
     if rows is not None:
         if subset is not None:
-            raise TypeError("subsetVect: pass either 'subset' or 'rows', not both")
+            raise TypeError("subset_vect: pass either 'subset' or 'rows', not both")
         subset = rows
     if cols is not None:
         if select is not None:
-            raise TypeError("subsetVect: pass either 'select' or 'cols', not both")
+            raise TypeError("subset_vect: pass either 'select' or 'cols', not both")
         select = cols
 
     if subset is None:
@@ -180,7 +200,7 @@ def subsetVect(
     if select is not None:
         if isinstance(select, str):
             select = [select]
-        all_cols = list(xc.names)
+        all_cols = _cpp_layer_names(xc)
         keep_idx = []
         for col in select:
             if col not in all_cols:
@@ -188,7 +208,7 @@ def subsetVect(
             keep_idx.append(all_cols.index(col))
         xc = xc.subset_cols(keep_idx)
 
-    return messages(xc, "subsetVect")
+    return messages(xc, "subset_vect")
 
 
 def _patch_spatraster_subset() -> None:
@@ -196,7 +216,7 @@ def _patch_spatraster_subset() -> None:
     ``SpatRaster.subset(layers, opt)`` from pybind11 requires a sequence and
     ``SpatOptions``. Accept:
 
-    - a single int (**0-based** layer index, same rules as :func:`subsetRast`)
+    - a single int (**0-based** layer index, same rules as :func:`subset_rast`)
       so ``r.subset(0)`` returns the first layer;
     - a layer name ``str`` matching :attr:`SpatRaster.names`, like
       ``r.subset("elevation")``;
@@ -213,7 +233,7 @@ def _patch_spatraster_subset() -> None:
                 raise ValueError("subset results in no layers")
             return _cpp_subset(self, pos, opt)
         if isinstance(layers, str):
-            nms = list(self.names)
+            nms = _cpp_layer_names(self)
             if layers not in nms:
                 raise ValueError(f"invalid layer name {layers!r}")
             return _cpp_subset(self, [nms.index(layers)], opt)
@@ -231,7 +251,7 @@ def _extract_cell_values(r: SpatRaster, cell_0based: float) -> np.ndarray:
 
 def _spatraster_getitem(self, key):
     """
-    ``r[[layers...]]`` — *key* is ``list`` or 1-D array → layers (see :func:`subsetRast`).
+    ``r[[layers...]]`` — *key* is ``list`` or 1-D array → layers (see :func:`subset_rast`).
 
     ``r[cell]`` — *key* is ``int`` → linear cell (**0-based**). ``r[row, col]`` — two ints.
 
@@ -239,7 +259,7 @@ def _spatraster_getitem(self, key):
     """
     # --- Layer selection: r[[0]], r[[0,2]], r[["a"]]; key is list ---
     if isinstance(key, list):
-        return subsetRast(self, key)
+        return _subset_rast(self, key)
 
     # 1-D array: layer indices or mask
     if isinstance(key, np.ndarray):
@@ -247,7 +267,7 @@ def _spatraster_getitem(self, key):
             raise TypeError(
                 "SpatRaster[[...]] expects a 1-D list or array of layer indices or names"
             )
-        return subsetRast(self, key.tolist())
+        return _subset_rast(self, key.tolist())
 
     if isinstance(key, slice) or key is Ellipsis:
         raise TypeError(

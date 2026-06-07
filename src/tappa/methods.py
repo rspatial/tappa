@@ -9,7 +9,7 @@ After :func:`registerMethods` is called (done once at import time by
     r.mask(mask_r)      # instead of terra.mask(r, mask_r)
     r.values()          # instead of terra.values(r)
     r.aggregate(2)      # instead of terra.aggregate(r, 2)
-    v.buffer(1000)      # instead of terra.bufferVect(v, 1000)
+    v.buffer(1000)      # instead of terra.buffer(v, 1000)
     e.intersect(e2)     # SpatExtent.intersect is already C++; this is the Python alias
 
 Only the **Python-level** wrappers are registered here.  The raw C++ methods
@@ -35,8 +35,9 @@ def registerMethods() -> None:
 
     # ── SpatRaster methods ────────────────────────────────────────────────────
 
+    from .dispatch import buffer, project, intersect
     from .generics import (
-        crop, mask as mask_rast, resample, projectRaster,
+        crop, mask, resample,
         classify, subst, clamp, clampTS, cover, diffRaster,
         boundaries, patches, cellSize, surfArea, terrain,
         sieve, stretch, scaleLinear, scaleRaster,
@@ -45,7 +46,7 @@ def registerMethods() -> None:
         quantileRaster, atan_2,
     )
     from .values import (
-        values, setValues, focalValues,
+        values, set_values, focalValues,
         has_values, in_memory, sources,
         has_min_max, minMax, setMinMax, compareGeom,
     )
@@ -67,7 +68,7 @@ def registerMethods() -> None:
         cumsum, cumprod, cummax, cummin,
         ifel,
     )
-    from .distance import distanceRast, costDist, gridDist
+    from .distance import distance, costDist, gridDist
     from .rasterize import rasterize
     from .sample import spatSample
     from .window import has_window, setWindow, removeWindow, extend
@@ -88,15 +89,14 @@ def registerMethods() -> None:
         has_colors, coltab, setColtab,
     )
     from .names import (
-        namesRast, setNamesRast, setNamesInplace,
         varnames, setVarnames, longnames, setLongnames,
     )
     from .time import has_time, timeInfo, getTime, setTime
-    from .write import writeRaster, update
-    from .stats import rowSums, colSums, rowMeans, colMeans, autocor, layerCor
-    from .merge import merge as mergeRast, mosaic
+    from .write import write, update
+    from .stats import row_sums, col_sums, row_means, col_means, autocor, layer_cor
+    from .merge import merge, mosaic
     from .coerce import asPolygons, asLines, asPoints, asArray, asMatrix, asDataFrame
-    from .plot import plot, plotRGB
+    from .plot import plot, plot_rgb
     from .tileApply import tileApply, getTileExtents, makeTiles
 
     _rast_methods = {
@@ -107,9 +107,10 @@ def registerMethods() -> None:
         "ymax":           lambda self: float(self.extent.vector[3]),
         # geometry / metadata
         "crop":           lambda self, y, **kw: crop(self, y, **kw),
-        "mask":           lambda self, m, **kw: mask_rast(self, m, **kw),
+        "mask":           lambda self, m, **kw: mask(self, m, **kw),
+        "buffer":         lambda self, width, **kw: buffer(self, width, **kw),
         "resample":       lambda self, y, **kw: resample(self, y, **kw),
-        "project":        lambda self, crs, **kw: projectRaster(self, crs, **kw),
+        "project":        lambda self, crs, **kw: project(self, crs, **kw),
         "trim":           lambda self, **kw: trim(self, **kw),
         "flip":           lambda self, **kw: flip(self, **kw),
         "rotate":         lambda self, **kw: rotate(self, **kw),
@@ -119,7 +120,7 @@ def registerMethods() -> None:
         "disagg":         lambda self, fact, **kw: disagg(self, fact, **kw),
         # values
         "values":         lambda self: values(self),
-        "setValues":     lambda self, v: setValues(self, v),
+        "setValues":     lambda self, v: set_values(self, v),
         "focalValues":   lambda self, w=3, **kw: focalValues(self, w, **kw),
         "has_values":     lambda self: has_values(self),
         "in_memory":      lambda self: in_memory(self),
@@ -176,22 +177,20 @@ def registerMethods() -> None:
         "is_factor":      lambda self: is_factor(self),
         "asFactor":      lambda self: asFactor(self),
         "catalyze":       lambda self: catalyze(self),
-        # names
-        "namesRast":     lambda self: namesRast(self),
         # time
         "has_time":       lambda self: has_time(self),
         "getTime":       lambda self: getTime(self),
         "setTime":       lambda self, v, **kw: setTime(self, v, **kw),
         # write / update
-        "write":          lambda self, filename, **kw: writeRaster(self, filename, **kw),
+        "write":          lambda self, filename, **kw: write(self, filename, **kw),
         "update":         lambda self, **kw: update(self, **kw),
         # stats
         "autocor":        lambda self, **kw: autocor(self, **kw),
-        "layerCor":      lambda self, fun="cor", **kw: layerCor(self, fun, **kw),
-        "rowSums":       lambda self, **kw: rowSums(self, **kw),
-        "colSums":       lambda self, **kw: colSums(self, **kw),
+        "layerCor":      lambda self, fun="cor", **kw: layer_cor(self, fun, **kw),
+        "rowSums":       lambda self, **kw: row_sums(self, **kw),
+        "colSums":       lambda self, **kw: col_sums(self, **kw),
         # merge
-        "merge":          lambda self, *others, **kw: mergeRast(self, *others, **kw),
+        "merge":          lambda self, *others, **kw: merge(self, *others, **kw),
         "mosaic":         lambda self, *others, **kw: mosaic(self, *others, **kw),
         # sampling
         "sample":         lambda self, size, **kw: spatSample(self, size, **kw),
@@ -208,7 +207,7 @@ def registerMethods() -> None:
         "asDataFrame":  lambda self, **kw: asDataFrame(self, **kw),
         # plot
         "plot":           lambda self, **kw: plot(self, **kw),
-        "plotRGB":       lambda self, **kw: plotRGB(self, **kw),
+        "plotRGB":       lambda self, **kw: plot_rgb(self, **kw),
         # tiles
         "tileApply":      lambda self, fun, cores=1, **kw: tileApply(self, fun, cores, **kw),
         "getTileExtents": lambda self, y=None, **kw: getTileExtents(self, y, **kw),
@@ -224,7 +223,7 @@ def registerMethods() -> None:
     # alone — use ``pt.setValues(r, v)``, ``pt.asPolygons(r)``, etc. for the
     # Python wrapper conveniences (broadcasting, kwarg defaults).
     _rast_force = {
-        "crop", "mask", "classify", "values",
+        "crop", "mask", "buffer", "project", "names", "classify", "values",
         "aggregate", "focal", "zonal", "extract", "app", "lapp", "tapp", "sapp",
         "merge", "mosaic", "write", "plot",
         "levels", "cats", "is_factor",
@@ -237,49 +236,52 @@ def registerMethods() -> None:
     # ── SpatVector methods ────────────────────────────────────────────────────
 
     from .generics import (
-        projectVector, shiftVect, rotateVect, rescaleVect, transVect,
+        shift, rotate, rescale, trans, flip, disagg,
     )
     from .geom import (
-        is_valid, makeValid,
-        unionVect, intersectVect, erase, symdif, coverVect,
-        cropVect, maskVect,
-        bufferVect, disaggVect, flipVect, spin,
+        is_valid, make_valid,
+        union, erase, symdif,
+        spin,
         hull, delaunay, voronoi,
-        simplifyGeom, thinNodes, thin, gaps,
+        simplify_geom, thin_nodes, thin, gaps,
         is_empty,
     )
-    from .distance import distanceVectSelf, distanceVect
+    from .distance import distance
+    from .aggregate import aggregate
     from .spatvec import (
         geomtype, is_lines, is_polygons, is_points,
         geom, crds,
         expanse, perim, nseg,
         fillHoles, vectAsDF, geomAsWkt,
     )
-    from .relate import is_related, relate, relateSelf
+    from .relate import is_related, relate, relate_self
     from .rasterize import rasterize as rasterize_fn
     from .extract import extract as extract_fn
-    from .merge import mergeVect
-    from .write import writeVector
-    from .names import namesVect, setNamesVect
-
+    from .merge import merge
+    from .write import write
     _vect_methods = {
-        "project":        lambda self, crs, **kw: projectVector(self, crs, **kw),
-        "crop":           lambda self, y, **kw: cropVect(self, y, **kw),
-        "mask":           lambda self, m, **kw: maskVect(self, m, **kw),
-        "buffer":         lambda self, width, **kw: bufferVect(self, width, **kw),
+        "project":        lambda self, crs, **kw: project(self, crs, **kw),
+        "crop":           lambda self, y, **kw: crop(self, y, **kw),
+        "mask":           lambda self, m, **kw: mask(self, m, **kw),
+        "buffer":         lambda self, width, **kw: buffer(self, width, **kw),
         "hull":           lambda self, **kw: hull(self, **kw),
         "voronoi":        lambda self, **kw: voronoi(self, **kw),
         "delaunay":       lambda self, **kw: delaunay(self, **kw),
-        "simplify":       lambda self, tol, **kw: simplifyGeom(self, tol, **kw),
-        "thinNodes":     lambda self, threshold=1e-6, **kw: thinNodes(self, threshold, **kw),
+        "simplify":       lambda self, tol, **kw: simplify_geom(self, tol, **kw),
+        "thinNodes":     lambda self, threshold=1e-6, **kw: thin_nodes(self, threshold, **kw),
         "thin":           lambda self, d, **kw: thin(self, d, **kw),
         "is_valid":       lambda self: is_valid(self),
-        "makeValid":     lambda self: makeValid(self),
+        "makeValid":     lambda self: make_valid(self),
         "is_empty":       lambda self: is_empty(self),
-        "union":          lambda self, y=None, **kw: unionVect(self, y, **kw),
-        "intersect":      lambda self, y, **kw: intersectVect(self, y, **kw),
+        "union":          lambda self, y=None, **kw: union(self, y, **kw),
+        "intersect":      lambda self, y, **kw: intersect(self, y, **kw),
         "erase":          lambda self, y, **kw: erase(self, y, **kw),
-        "disagg":         lambda self, **kw: disaggVect(self, **kw),
+        "disagg":         lambda self, **kw: disagg(self, **kw),
+        "flip":           lambda self, **kw: flip(self, **kw),
+        "rotate":         lambda self, **kw: rotate(self, **kw),
+        "shift":          lambda self, **kw: shift(self, **kw),
+        "rescale":        lambda self, **kw: rescale(self, **kw),
+        "aggregate":      lambda self, *args, **kw: aggregate(self, *args, **kw),
         "spin":           lambda self, angle, **kw: spin(self, angle, **kw),
         "gaps":           lambda self, **kw: gaps(self, **kw),
         "expanse":        lambda self, **kw: expanse(self, **kw),
@@ -291,18 +293,18 @@ def registerMethods() -> None:
         "as_wkt":         lambda self: geomAsWkt(self),
         "relate":         lambda self, y, relation, **kw: relate(self, y, relation, **kw),
         "is_related":     lambda self, y, relation, **kw: is_related(self, y, relation, **kw),
-        "distance":       lambda self, **kw: distanceVectSelf(self, **kw),
+        "distance":       lambda self, y=None, **kw: distance(self, y, **kw),
         "rasterize":      lambda self, r, **kw: rasterize_fn(self, r, **kw),
         "extract":        lambda self, r, **kw: extract_fn(r, self, **kw),
-        "merge":          lambda self, y, **kw: mergeVect(self, y, **kw),
-        "write":          lambda self, filename, **kw: writeVector(self, filename, **kw),
-        "names":          lambda self: namesVect(self),
+        "merge":          lambda self, y=None, *more, **kw: merge(self, y, *more, **kw),
+        "write":          lambda self, filename, **kw: write(self, filename, **kw),
     }
 
     _vect_force = {
         "crop", "mask", "buffer", "simplify", "project",
         "union", "intersect", "erase", "merge", "write",
         "rasterize", "extract", "distance",
+        "flip", "rotate", "shift", "rescale", "disagg", "aggregate",
     }
     for name, fn in _vect_methods.items():
         if name in _vect_force or not hasattr(SpatVector, name):
@@ -319,3 +321,33 @@ def registerMethods() -> None:
     for name, fn in _ext_methods.items():
         if not hasattr(SpatExtent, name):
             setattr(SpatExtent, name, fn)
+
+    # ── names property (getter/setter) ────────────────────────────────────────
+    # Keep C++ names accessible as ``r.names`` (list) and ``r.names = [...]``
+    # without shadowing internal C++ calls via a no-arg method.
+
+    from .names import _cpp_layer_names, _set_names_inplace, _cpp_set_vect_names
+
+    class _SpatRasterNamesProperty:
+        def __get__(self, obj, objtype=None):
+            if obj is None:
+                return self
+            return _cpp_layer_names(obj)
+
+        def __set__(self, obj, value):
+            _set_names_inplace(obj, [str(v) for v in value])
+
+    class _SpatVectorNamesProperty:
+        def __get__(self, obj, objtype=None):
+            if obj is None:
+                return self
+            return _cpp_layer_names(obj)
+
+        def __set__(self, obj, value):
+            _cpp_set_vect_names(obj, [str(v) for v in value])
+
+    SpatRaster.names = _SpatRasterNamesProperty()  # type: ignore[assignment]
+    SpatVector.names = _SpatVectorNamesProperty()  # type: ignore[assignment]
+
+
+register_methods = registerMethods

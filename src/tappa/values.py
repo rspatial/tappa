@@ -2,7 +2,7 @@
 values.py — read/write cell values, metadata, and geometry comparison.
 """
 from __future__ import annotations
-from typing import TYPE_CHECKING, Optional, Union, List
+from typing import TYPE_CHECKING, Any, Optional, Union, List
 import numpy as np
 
 from ._terra import SpatRaster, SpatVector, SpatExtent, SpatOptions
@@ -84,16 +84,19 @@ def setMinMax(x: SpatRaster, force: bool = False) -> SpatRaster:
 # ---------------------------------------------------------------------------
 
 def values(
-    x: SpatRaster,
+    x: Union[SpatRaster, SpatVector],
     mat: bool = True,
     na_rm: bool = False,
-) -> np.ndarray:
+):
     """
-    Return all cell values of *x* as a numpy array.
+    Return values — like R ``values()``.
+
+    For rasters, returns a numpy array of cell values.
+    For vectors, returns a pandas DataFrame of attributes.
 
     Parameters
     ----------
-    x : SpatRaster
+    x : SpatRaster or SpatVector
     mat : bool
         If True, return a 2-D matrix (nrows × nlayers); if False a flat 1-D
         vector (all layers concatenated).
@@ -102,8 +105,14 @@ def values(
 
     Returns
     -------
-    numpy.ndarray
+    numpy.ndarray or pandas.DataFrame
     """
+    if isinstance(x, SpatVector):
+        return _vect_values(x)
+    if not isinstance(x, SpatRaster):
+        raise TypeError(
+            f"values: expected SpatRaster or SpatVector, got {type(x).__name__}"
+        )
     nr, nc = x.nrow(), x.ncol()
     nl = x.nlyr()
     x.readStart()
@@ -123,7 +132,21 @@ def values(
     return arr
 
 
-def setValues(x: SpatRaster, v: Union[np.ndarray, List, float]) -> SpatRaster:
+def set_values(
+    x: Union[SpatRaster, SpatVector],
+    v: Any,
+) -> Union[SpatRaster, SpatVector]:
+    """Assign values — like R ``values(x) <- v``."""
+    if isinstance(x, SpatVector):
+        return _set_vect_values(x, v)
+    if isinstance(x, SpatRaster):
+        return _set_values_rast(x, v)
+    raise TypeError(
+        f"set_values: expected SpatRaster or SpatVector, got {type(x).__name__}"
+    )
+
+
+def _set_values_rast(x: SpatRaster, v: Union[np.ndarray, List, float]) -> SpatRaster:
     """
     Assign new cell values to a copy of *x*.
 
@@ -201,7 +224,7 @@ def focalValues(
 # SpatVector values
 # ---------------------------------------------------------------------------
 
-def vectValues(x: SpatVector) -> "pd.DataFrame":
+def _vect_values(x: SpatVector) -> "pd.DataFrame":
     """
     Return the attribute table of *x* as a pandas DataFrame.
     """
@@ -213,7 +236,7 @@ def vectValues(x: SpatVector) -> "pd.DataFrame":
     return _getSpatDF(x.df)
 
 
-def setVectValues(x: SpatVector, df: "pd.DataFrame") -> SpatVector:
+def _set_vect_values(x: SpatVector, df: "pd.DataFrame") -> SpatVector:
     """
     Set attribute table of a copy of *x*.
 
@@ -283,3 +306,7 @@ def compareGeom(
             msgs.append(x.getError())
         raise RuntimeError("; ".join(msgs) or "Geometries do not match")
     return bool(result)
+
+
+# R-style alias
+setValues = set_values

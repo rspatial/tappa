@@ -10,7 +10,7 @@ pytest.importorskip("tappa._terra")
 
 from tappa.rast import rast
 from tappa.vect import vect
-from tappa.generics import projectVector, projectRaster
+from tappa.dispatch import project
 from tappa.crs import crs, projPipelines
 from tappa.values import values
 
@@ -43,12 +43,12 @@ def lux():
 
 
 def test_project_vector_basic(lux):
-    v2 = projectVector(lux, "EPSG:3857")
+    v2 = project(lux, "EPSG:3857")
     assert crs(v2, proj4=True) != crs(lux, proj4=True)
 
 
 def test_project_vector_allow_ballpark_false(lux):
-    v2 = projectVector(lux, "EPSG:3857", allow_ballpark=False)
+    v2 = project(lux, "EPSG:3857", allow_ballpark=False)
     assert crs(v2, proj4=True) != crs(lux, proj4=True)
 
 
@@ -57,7 +57,7 @@ def test_project_vector_pipeline(lux):
     if pipes is None or len(pipes) == 0:
         pytest.skip("no pipeline available")
     pipe = pipes["definition"].iloc[0]
-    v2 = projectVector(lux, "EPSG:3857", pipeline=pipe)
+    v2 = project(lux, "EPSG:3857", pipeline=pipe)
     e = v2.extent()
     assert not np.isnan(e.vector[0])
 
@@ -70,12 +70,12 @@ def elev():
 
 
 def test_project_raster_basic(elev):
-    r2 = projectRaster(elev, "EPSG:3857")
+    r2 = project(elev, "EPSG:3857")
     assert crs(r2, proj4=True) != crs(elev, proj4=True)
 
 
 def test_project_raster_allow_ballpark_false(elev):
-    r2 = projectRaster(elev, "EPSG:3857", allow_ballpark=False)
+    r2 = project(elev, "EPSG:3857", allow_ballpark=False)
     v = values(r2)
     assert not np.all(np.isnan(v))
 
@@ -86,6 +86,6 @@ def test_project_raster_pipeline(elev):
     if pipes is None or len(pipes) == 0:
         pytest.skip("no pipeline available")
     pipe = pipes["definition"].iloc[0]
-    r2 = projectRaster(elev, "EPSG:3857", pipeline=pipe)
+    r2 = project(elev, "EPSG:3857", pipeline=pipe)
     v = values(r2)
     assert not np.all(np.isnan(v))

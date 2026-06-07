@@ -16,7 +16,7 @@ pytest.importorskip("tappa._terra")
 
 from tappa.rast import rast
 from tappa.values import setValues, values
-from tappa.write import writeRaster, update
+from tappa.write import write, update
 from tappa.names import setNamesInplace
 
 
@@ -27,7 +27,7 @@ class TestUpdateValues:
         r = rast(nrows=10, ncols=10)
         r = setValues(r, list(range(1, 101)))
         f = str(tmp_path / "r1.tif")
-        x = writeRaster(r, f)
+        x = write(r, f)
 
         update(x, cells=[1, 50, 100], values=[999, 888, 777])
         y = rast(f)
@@ -42,7 +42,7 @@ class TestUpdateValues:
         r = rast(nrows=5, ncols=5, nlyrs=3)
         r = setValues(r, np.arange(1, 76, dtype=float).tolist())
         f = str(tmp_path / "r2.tif")
-        x = writeRaster(r, f, datatype="FLT4S")
+        x = write(r, f, datatype="FLT4S")
 
         update(x, cells=[1, 13], values=[-5, -10])
         y = rast(f)
@@ -56,7 +56,7 @@ class TestUpdateValues:
         r = rast(nrows=5, ncols=5, nlyrs=3)
         r = setValues(r, np.arange(1, 76, dtype=float).tolist())
         f = str(tmp_path / "r3.tif")
-        x = writeRaster(r, f, datatype="FLT4S")
+        x = write(r, f, datatype="FLT4S")
 
         update(x, cells=[1, 25], values=[0, 0], layer=2)
         y = rast(f)
@@ -69,7 +69,7 @@ class TestUpdateValues:
         r = rast(nrows=5, ncols=5, nlyrs=2)
         r = setValues(r, np.arange(1, 51, dtype=float).tolist())
         f = str(tmp_path / "r4.tif")
-        x = writeRaster(r, f, datatype="FLT4S")
+        x = write(r, f, datatype="FLT4S")
 
         update(x, cells=[1, 2], values=[100, 200, 300, 400])
         y = rast(f)
@@ -82,7 +82,7 @@ class TestUpdateValues:
         r = rast(nrows=5, ncols=5)
         r = setValues(r, np.arange(1, 26, dtype=float).tolist())
         f = str(tmp_path / "r5.tif")
-        x = writeRaster(r, f, datatype="FLT4S")
+        x = write(r, f, datatype="FLT4S")
 
         update(x, cells=[1, 2, 3, 4, 5], values=[0])
         y = rast(f)
@@ -95,7 +95,7 @@ class TestUpdateValues:
         r = rast(nrows=5, ncols=5)
         r = setValues(r, np.arange(1, 26, dtype=float).tolist())
         f = str(tmp_path / "r6.tif")
-        x = writeRaster(r, f, datatype="FLT4S")
+        x = write(r, f, datatype="FLT4S")
 
         update(x, cells=[1, 13], values=[float("nan"), float("nan")])
         y = rast(f)
@@ -111,7 +111,7 @@ class TestUpdateMeta:
         r = rast(nrows=5, ncols=5, nlyrs=2)
         r = setValues(r, np.arange(1, 51, dtype=float).tolist())
         f = str(tmp_path / "meta1.tif")
-        x = writeRaster(r, f, datatype="FLT4S")
+        x = write(r, f, datatype="FLT4S")
 
         setNamesInplace(x, ["A", "B"])
         update(x, names=True)
@@ -123,7 +123,7 @@ class TestUpdateMeta:
         r = rast(nrows=5, ncols=5)
         r = setValues(r, list(range(1, 26)))
         f = str(tmp_path / "meta2.tif")
-        x = writeRaster(r, f)
+        x = write(r, f)
 
         x.set_crs("+proj=utm +zone=1")
         update(x, crs=True)
@@ -136,7 +136,7 @@ class TestUpdateMeta:
         r = rast(nrows=5, ncols=5, xmin=0, xmax=5, ymin=0, ymax=5)
         r = setValues(r, list(range(1, 26)))
         f = str(tmp_path / "meta3.tif")
-        x = writeRaster(r, f)
+        x = write(r, f)
 
         new_ext = SpatExtent()
         new_ext.vector = [-1, 6, -1, 6]

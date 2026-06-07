@@ -70,7 +70,8 @@ def crosstab(
     if nl < 2:
         raise ValueError("crosstab needs at least 2 layers")
 
-    nms = list(x.names)
+    from .names import _cpp_layer_names
+    nms = _cpp_layer_names(x)
     opt = SpatOptions()
     res = x.crosstab(int(digits), not useNA, opt)
 

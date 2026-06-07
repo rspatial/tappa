@@ -25,8 +25,8 @@ def _sprc_from_rasters(rasters: List[SpatRaster]) -> SpatRasterCollection:
 # ---------------------------------------------------------------------------
 
 def merge(
-    x: SpatRaster,
-    *others: SpatRaster,
+    x: Union[SpatRaster, SpatVector, List[SpatRaster], List[SpatVector], tuple],
+    *others: Any,
     first: bool = True,
     na_rm: bool = True,
     algo: int = 1,
@@ -34,7 +34,8 @@ def merge(
     method: Optional[str] = None,
     filename: str = "",
     overwrite: bool = False,
-) -> SpatRaster:
+    **kwargs: Any,
+) -> Union[SpatRaster, SpatVector]:
     """
     Merge two or more SpatRasters that overlap or are adjacent.
 
@@ -65,6 +66,12 @@ def merge(
     -------
     SpatRaster
     """
+    if isinstance(x, SpatVector) or (
+        isinstance(x, (list, tuple)) and x and isinstance(x[0], SpatVector)
+    ):
+        y = others[0] if others else None
+        return _merge_vect(x, y, *others[1:], **kwargs)
+
     if isinstance(x, (list, tuple)):
         if others:
             raise TypeError(
@@ -74,6 +81,10 @@ def merge(
         all_rasters = list(x)
         if not all_rasters:
             raise ValueError("merge: list of rasters is empty")
+    elif not isinstance(x, SpatRaster):
+        raise TypeError(
+            f"merge: expected SpatRaster or SpatVector, got {type(x).__name__}"
+        )
     else:
         all_rasters = [x] + list(others)
     opt = spatoptions(filename, overwrite)
@@ -140,7 +151,7 @@ def mosaic(
 # Vector attribute table join
 # ---------------------------------------------------------------------------
 
-def mergeVect(
+def _merge_vect(
     x: Union[SpatVector, List[SpatVector]],
     y: Optional[Union["pd.DataFrame", SpatVector]] = None,
     *more: SpatVector,
@@ -174,7 +185,7 @@ def mergeVect(
         items = list(x)
         if y is not None or more:
             raise TypeError(
-                "mergeVect: when x is a list of SpatVectors, no extra "
+                "merge_vect: when x is a list of SpatVectors, no extra "
                 "positional arguments are allowed"
             )
     elif isinstance(y, SpatVector) or any(isinstance(m, SpatVector) for m in more):
@@ -184,20 +195,20 @@ def mergeVect(
 
     if items is not None:
         if not items:
-            raise ValueError("mergeVect: no SpatVectors to combine")
+            raise ValueError("merge_vect: no SpatVectors to combine")
         out = items[0].deepcopy()
         for v in items[1:]:
             out = out.append(v, True)
-        return messages(out, "mergeVect")
+        return messages(out, "merge_vect")
 
     try:
         import pandas as pd
     except ImportError:
-        raise ImportError("pandas is required for mergeVect()")
+        raise ImportError("pandas is required for merge_vect()")
     from ._helpers import _getSpatDF, _makeSpatDF
 
     if y is None:
-        raise TypeError("mergeVect: missing argument 'y' (DataFrame or SpatVector)")
+        raise TypeError("merge_vect: missing argument 'y' (DataFrame or SpatVector)")
 
     v = _getSpatDF(x.df)
     if v is None:

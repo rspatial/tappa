@@ -26,9 +26,9 @@ def _to_vect(x) -> SpatVector:
     if isinstance(x, SpatVector):
         return x
     if isinstance(x, SpatRaster):
-        return x.asPolygons(True, False, True, False, _opt())
+        return x.as_polygons(True, False, True, False, _opt())
     if isinstance(x, SpatExtent):
-        return x.asPolygons()
+        return x.as_polygons()
     raise TypeError(f"Cannot convert {type(x)} to SpatVector")
 
 
@@ -107,7 +107,7 @@ def relate(
         return m
 
 
-def relateSelf(
+def relate_self(
     x: SpatVector,
     relation: str = "intersects",
     *,
@@ -131,7 +131,7 @@ def relateSelf(
     """
     n = x.nrow()
     out = x.related_between(x, relation, na_rm)
-    messages(x, "relateSelf")
+    messages(x, "relate_self")
     if len(out[0]) == 0:
         return np.empty((0, 2), dtype=int)
     rows = np.array(out[0], dtype=int)
@@ -188,7 +188,7 @@ def adjacent(
     if gtype is not None and gtype != "polygons":
         raise ValueError("adjacent: x must contain polygons")
 
-    a = relateSelf(x, t, symmetrical=False)
+    a = relate_self(x, t, symmetrical=False)
     n = x.nrow()
     if pairs:
         if symmetrical and len(a) > 0:
@@ -248,7 +248,7 @@ def nearby(
         For *k*-based: an ``n × (k+1)`` matrix ``[id, k1, k2, …]``, or
         ``[from, to]`` pairs if ``pairs=True``.
     """
-    from .distance import distanceVect, distanceVectSelf
+    from .distance import _distance_vect, _distance_vect_self
     from .geom import centroids as _centroids
 
     k = int(round(k))
@@ -272,20 +272,20 @@ def nearby(
 
     if distance > 0:
         if yc is not None:
-            d = distanceVect(xc, yc, method=method)
+            d = _distance_vect(xc, yc, method=method)
             r, c = np.indices(d.shape)
             mask = d <= distance
             return np.column_stack([r[mask], c[mask]])
-        d = distanceVectSelf(xc, pairs=True, symmetrical=symmetrical, method=method)
+        d = _distance_vect_self(xc, pairs=True, symmetrical=symmetrical, method=method)
         if d.size == 0:
             return np.empty((0, 2), dtype=int)
         return d[d[:, 2] <= distance][:, :2].astype(int)
 
     if yc is not None:
-        d = distanceVect(xc, yc, method=method)
+        d = _distance_vect(xc, yc, method=method)
         kk = max(1, min(k, yc.nrow() - 1)) if yc.nrow() > 1 else 1
     else:
-        d = distanceVectSelf(xc, method=method)  # n x n matrix
+        d = _distance_vect_self(xc, method=method)  # n x n matrix
         np.fill_diagonal(d, np.nan)
         kk = max(1, min(k, xc.nrow() - 1))
 

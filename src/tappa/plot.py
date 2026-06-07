@@ -1,7 +1,7 @@
 """
 Plotting for SpatRaster objects.
 
-Provides :func:`plot` (single or multi-layer raster) and :func:`plotRGB`
+Provides :func:`plot` (single or multi-layer raster) and :func:`plot_rgb`
 (composite colour image) using **matplotlib** as the rendering backend.
 
 Quick start::
@@ -24,7 +24,7 @@ import numpy as np
 
 from ._terra import SpatOptions, SpatRaster, SpatVector
 
-__all__ = ["plot", "plotRGB", "points", "lines", "polys", "text"]
+__all__ = ["plot", "plot_rgb", "points", "lines", "polys", "text"]
 
 # ── Default palette ──────────────────────────────────────────────────────────
 
@@ -903,7 +903,8 @@ def plot(
         warnings.warn("plot: SpatRaster has no cell values", stacklevel=2)
 
     nl_total = r.nlyr()
-    lyr_names = list(r.names)
+    from .names import _cpp_layer_names
+    lyr_names = _cpp_layer_names(r)
 
     # ── resolve layer selection (0-based) ────────────────────────────────────
     if y is None:
@@ -1008,7 +1009,7 @@ def plot(
     return np.array(axes_arr)
 
 
-def plotRGB(
+def plot_rgb(
     r: SpatRaster,
     red: int = 0,
     green: int = 1,
@@ -1264,8 +1265,8 @@ def _resolve_color_by_attr(
     import matplotlib.colors as mc
 
     try:
-        from .values import vectValues
-        df = vectValues(v)
+        from .values import vect_values
+        df = vect_values(v)
     except Exception:
         return None, None, None
     cols = list(df.columns) if hasattr(df, "columns") else []
@@ -1603,8 +1604,8 @@ def _resolve_text_labels(
         return [str(i + 1) for i in range(n)]
     if isinstance(labels, (str, int)):
         try:
-            from .values import vectValues
-            df = vectValues(x)
+            from .values import vect_values
+            df = vect_values(x)
         except Exception:
             df = None
         cols = list(df.columns) if df is not None and hasattr(df, "columns") else []

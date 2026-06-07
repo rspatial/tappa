@@ -12,6 +12,7 @@ from typing import Any, Iterable, Iterator, List, Union
 
 from ._helpers import messages as _msg, spatoptions
 from ._terra import SpatOptions, SpatRaster, SpatRasterCollection as _SRC
+from .names import _cpp_layer_names
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -308,7 +309,7 @@ def sprc(
     if isinstance(x, (list, tuple)):
         ptr = _SRC()
         nms: List[str] = (
-            list(x.names) if hasattr(x, "names") else [""] * len(x)
+            _cpp_layer_names(x) if hasattr(x, "names") else [""] * len(x)
         )
         for i, item in enumerate(x):
             nm = nms[i] if i < len(nms) else ""

@@ -13,7 +13,8 @@ pytest.importorskip("tappa._terra")
 from tappa.rast import rast
 from tappa.vect import vect
 from tappa.spatvec import geomtype, is_lines, is_polygons, is_points, perim, expanse as area
-from tappa.geom import bufferVect, simplifyGeom
+from tappa.dispatch import buffer
+from tappa.geom import simplify_geom
 from tappa.extent import ext
 from tappa.relate import is_related
 
@@ -41,13 +42,13 @@ def test_geomtype_and_measures(lux):
 
 def test_buffer_increases_area(lux):
     v = lux
-    b = bufferVect(v.subset_rows([0]), 500)
+    b = buffer(v.subset_rows([0]), 500)
     assert area(b)[0] > area(v.subset_rows([0]))[0]
 
 
 def test_simplify_reduces_segments(lux):
     v = lux
-    simp = simplifyGeom(v.subset_rows([0]), 100)
+    simp = simplify_geom(v.subset_rows([0]), 100)
     assert simp.nrow() >= 1
 
 

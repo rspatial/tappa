@@ -10,7 +10,7 @@ pytest.importorskip("tappa._terra")
 import tappa as pt
 from tappa.rast import rast
 from tappa.values import setValues
-from tappa.write import writeRaster
+from tappa.write import write
 from tappa.sprc import sprc
 
 
@@ -25,8 +25,8 @@ class TestVrt:
 
         f1 = str(tmp_path / "r1.tif")
         f2 = str(tmp_path / "r2.tif")
-        writeRaster(r, f1)
-        writeRaster(r2, f2)
+        write(r, f1)
+        write(r2, f2)
 
         vrt_file = str(tmp_path / "test.vrt")
         rc = sprc([f1, f2])

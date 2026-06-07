@@ -67,7 +67,7 @@ print(r)
 # Crop to an extent and write the result
 e  = pt.ext(640000, 660000, 4170000, 4190000)
 r2 = pt.crop(r, e)
-pt.write_raster(r2, "elevation_cropped.tif")
+pt.write(r2, "elevation_cropped.tif")
 ```
 
 ## Two calling styles

@@ -2,11 +2,13 @@
 distance.py — distance and buffer operations for SpatRaster and SpatVector.
 """
 from __future__ import annotations
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Union
 import numpy as np
 
 from ._terra import SpatRaster, SpatVector, SpatOptions
 from ._helpers import messages, spatoptions
+
+_cpp_rast_buffer = SpatRaster.buffer  # captured before monkey-patching
 
 
 def _opt() -> SpatOptions:
@@ -17,7 +19,7 @@ def _opt() -> SpatOptions:
 # raster buffer
 # ---------------------------------------------------------------------------
 
-def bufferRast(
+def _buffer_rast(
     x: SpatRaster,
     width: float,
     background: float = 0.0,
@@ -45,7 +47,7 @@ def bufferRast(
     SpatRaster
     """
     opt = spatoptions(filename, overwrite)
-    xc = x.buffer(width, background, include, opt)
+    xc = _cpp_rast_buffer(x, width, background, include, opt)
     return messages(xc, "buffer")
 
 
@@ -53,7 +55,32 @@ def bufferRast(
 # raster distance
 # ---------------------------------------------------------------------------
 
-def distanceRast(
+def distance(
+    x: Union[SpatRaster, SpatVector],
+    y: Optional[Union[SpatRaster, SpatVector]] = None,
+    **kwargs: Any,
+):
+    """
+    Distance — like R ``distance()``.
+
+    For rasters: ``distance(r, y=None, …)`` returns a :class:`SpatRaster`.
+    For vectors without *y*: pairwise self-distances (``ndarray``).
+    For vectors with *y*: distances from *x* to *y* (``ndarray``).
+    """
+    if isinstance(x, SpatRaster):
+        return _distance_rast(x, y, **kwargs)
+    if isinstance(x, SpatVector):
+        if y is None:
+            return _distance_vect_self(x, **kwargs)
+        if not isinstance(y, SpatVector):
+            raise TypeError("distance: y must be a SpatVector when x is a SpatVector")
+        return _distance_vect(x, y, **kwargs)
+    raise TypeError(
+        f"distance: expected SpatRaster or SpatVector, got {type(x).__name__}"
+    )
+
+
+def _distance_rast(
     x: SpatRaster,
     y: Optional[SpatVector] = None,
     *,
@@ -228,7 +255,7 @@ def distanceXY(
         else "+proj=utm +zone=1 +datum=WGS84"
     )
     v = vect(m, crs=crs)
-    return distanceVectSelf(
+    return _distance_vect_self(
         v,
         sequential=sequential,
         pairs=pairs,
@@ -239,7 +266,7 @@ def distanceXY(
     )
 
 
-def distanceVectSelf(
+def _distance_vect_self(
     x: SpatVector,
     sequential: bool = False,
     pairs: bool = False,
@@ -280,7 +307,7 @@ def distanceVectSelf(
     method = method.lower()
     if method not in ("cosine", "haversine", "geo"):
         raise ValueError(
-            "distanceVectSelf: method must be 'geo', 'haversine', or 'cosine' "
+            "distance: method must be 'geo', 'haversine', or 'cosine' "
             f"(same as R distance(SpatVector)); got {method!r}"
         )
     opt = _opt()
@@ -314,7 +341,7 @@ def distanceVectSelf(
     return mat
 
 
-def distanceVect(
+def _distance_vect(
     x: SpatVector,
     y: SpatVector,
     pairwise: bool = False,

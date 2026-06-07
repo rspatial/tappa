@@ -6,7 +6,7 @@ from typing import Optional, Union, List, Dict, Any
 
 from ._terra import SpatRaster, SpatOptions
 from ._helpers import _getSpatDF, _makeSpatDF, messages
-from .names import setNamesInplace
+from .names import setNamesInplace, _cpp_layer_names
 
 
 def _opt() -> SpatOptions:
@@ -16,7 +16,7 @@ def _opt() -> SpatOptions:
 def _layer_idx(x: SpatRaster, layer: Union[int, str]) -> int:
     """0-based layer index (matches C++ ``source`` layer indexing)."""
     if isinstance(layer, str):
-        return list(x.names).index(layer)
+        return _cpp_layer_names(x).index(layer)
     return int(layer)
 
 
@@ -66,7 +66,7 @@ def levels(x: SpatRaster, layer: Optional[Union[int, str]] = None) -> List[Any]:
             result.append(df[cols])
     if layer is not None:
         if isinstance(layer, str):
-            nms = list(x.names)
+            nms = _cpp_layer_names(x)
             layer = nms.index(layer)
         return result[layer]
     return result
@@ -126,7 +126,7 @@ def cats(x: SpatRaster, layer: Optional[Union[int, str]] = None) -> List[Any]:
             result.append(_getSpatDF(cat.df))
     if layer is not None:
         if isinstance(layer, str):
-            nms = list(x.names)
+            nms = _cpp_layer_names(x)
             layer = nms.index(layer)
         return result[layer]
     return result

@@ -14,18 +14,27 @@ Two equivalent calling styles are supported:
   pt.aggregate(r, 2)                r.aggregate(2)
   pt.focal(r, 3)                    r.focal(3)
   pt.values(r)                      r.values()
-  pt.bufferVect(v, 1000)            v.buffer(1000)
-  pt.projectVector(v, crs)          v.project(crs)
+  pt.buffer(v, 1000)                v.buffer(1000)
+  pt.project(v, crs)                v.project(crs)
 
 Quick reference (R → Python):
   rast()              pt.rast()
   vect()              pt.vect()
   ext()               pt.ext()
   crs()               pt.crs()
-  crop()              pt.crop(r, e)  or  r.crop(e)
-  mask()              pt.mask(r, m)  or  r.mask(m)
-  project(rast)       pt.projectRaster()  or  r.project(crs)
-  project(vect)       pt.projectVector()  or  v.project(crs)
+  crop()              pt.crop(x, e)  or  x.crop(e)   (raster or vector)
+  mask()              pt.mask(x, m)  or  x.mask(m)   (raster or vector)
+  buffer()            pt.buffer(x, w)  or  x.buffer(w)
+  project()           pt.project(x, crs)  or  x.project(crs)
+  intersect()         pt.intersect(x, y)  or  x.intersect(y)
+  distance()          pt.distance(x, y)  or  x.distance(y)
+  write()             pt.write(x, file)  or  x.write(file)
+  merge()             pt.merge(x, y)  or  x.merge(y)
+  subset()            pt.subset(x, i)  or  x[[i]]
+  names()             pt.names(x)  or  x.names()
+  values()            pt.values(x)  or  x.values()
+  aggregate()         pt.aggregate(x, …)  or  x.aggregate(…)
+  flip/shift/…        pt.flip(x)  pt.shift(x)  pt.disagg(x)  …
   resample()          pt.resample()  or  r.resample(template)
   classify()          pt.classify()  or  r.classify(rcl)
   terrain()           pt.terrain()  or  r.terrain()
@@ -53,8 +62,8 @@ Arithmetic operators (Arith_generics.R):
   is_na(), not_na(), whichMax(), rast_sum(), compareRast(), …
 
 Geometry operations (geom.R):
-  is_valid(), makeValid(), unionVect(), intersectVect(), erase(),
-  symdif(), bufferVect(), hull(), voronoi(), delaunay(), spin(), …
+  is_valid(), make_valid(), union(), intersect(), erase(),
+  symdif(), buffer(), hull(), voronoi(), delaunay(), spin(), …
 """
 
 from ._terra import (  # noqa: F401
@@ -74,14 +83,20 @@ from ._terra import (  # noqa: F401
     SpatRasterStack,
 )
 
-from ._helpers import characterCRS, messages                        # noqa: F401
-from .crs import crs, projPipelines                                   # noqa: F401
-from .show import reprExtent, reprRaster, reprVector, show, registerReprs  # noqa: F401
-registerReprs()  # attach __repr__ / __str__ to C++ types
+from ._helpers import characterCRS as character_crs, messages        # noqa: F401
+from .crs import crs, projPipelines as proj_pipelines                # noqa: F401
+from .show import (                                                  # noqa: F401
+    reprExtent as repr_extent,
+    reprRaster as repr_raster,
+    reprVector as repr_vector,
+    show,
+    registerReprs as register_reprs,
+)
+register_reprs()  # attach __repr__ / __str__ to C++ types
 from .extent import ext                                               # noqa: F401
 from .rast import rast                                                # noqa: F401
 from .vect import vect                                                # noqa: F401
-from .plot import plot, plotRGB, points, lines, polys, text           # noqa: F401
+from .plot import plot, plot_rgb, points, lines, polys, text           # noqa: F401
 
 from .arith import (                                                  # noqa: F401
     # NA / logical tests
@@ -89,22 +104,22 @@ from .arith import (                                                  # noqa: F4
     is_nan, is_finite, is_infinite,
     any_na, all_na, no_na, count_na,
     # summaries
-    whichMax, whichMin, whichLyr,
-    whereMax, whereMin,
+    which_max, which_min, which_lyr,
+    where_max, where_min,
     rast_sum, rast_mean, rast_min, rast_max,
-    rast_median, rast_modal, stdevRast,
+    rast_median, rast_modal, stdev_rast,
     global_,
     # compare / logic
-    compareRast, logicRastFn,
+    compare_rast, logic_rast_fn,
     # type coercion / queries
     as_int_rast, as_bool_rast,
     is_bool_rast, is_int_rast, is_num_rast,
-    registerOperators,
+    register_operators,
 )
-registerOperators()  # attach +, -, *, /, ==, … to C++ types
+register_operators()  # attach +, -, *, /, ==, … to C++ types
 
-from .methods import registerMethods                                 # noqa: F401
-registerMethods()    # attach r.crop(), r.mask(), v.buffer(), … to C++ types
+from .methods import register_methods                                 # noqa: F401
+register_methods()    # attach r.crop(), r.mask(), v.buffer(), … to C++ types
 
 # Python-friendly conveniences on the C++ types (mirroring R `length()` /
 # `nrow()`, which terra users rely on).
@@ -124,7 +139,8 @@ def _spatvector_setitem(self, key, value):
     arr = _np.asarray(value)
     name = str(key)
     # Replace if column already exists.
-    if hasattr(self, "names") and name in list(self.names):
+    from .names import _cpp_layer_names
+    if name in _cpp_layer_names(self):
         try:
             self.remove_column(name)
         except Exception:
@@ -152,7 +168,7 @@ def _spatvector_getitem(self, key):
     * ``v[list[int]]`` — subset features by 0-based indices.
     """
     import numpy as _np
-    from .subset import subsetVect as _subset_vect
+    from .subset import _subset_vect
     from ._helpers import _getSpatDF
 
     if isinstance(key, str):
@@ -188,163 +204,158 @@ SpatVector.__getitem__ = _spatvector_getitem  # type: ignore[assignment]
 
 from .geom import (                                                   # noqa: F401
     # validity
-    is_valid, makeValid,
+    is_valid, make_valid,
     # set operations
-    unionVect, intersectVect, erase, symdif, coverVect,
-    # crop / mask
-    cropVect, maskVect,
+    union, erase, symdif,
     # geometry modifications
-    bufferVect, disaggVect, flipVect, spin,
+    spin,
     hull, delaunay, voronoi, elongate,
-    mergeLines, makeNodes, removeDupNodes,
-    simplifyGeom, thinNodes, thin,
-    sharedPaths, snapVect, gaps,
-    forceCCW, widthVect, clearance,
+    merge_lines, make_nodes, remove_dup_nodes,
+    simplify_geom, thin_nodes, thin,
+    shared_paths, snap, gaps,
+    force_ccw, width, clearance,
     centroids,
     # predicates
     is_empty,
 )
 
+from .dispatch import buffer, project, intersect                      # noqa: F401
+
 from .generics import (                                               # noqa: F401
     # dimensions / metadata
     nrow, ncol, nlyr, ncell, res, origin,
     # helpers
-    spatOptions, deepcopy, tighten,
+    spat_options, deepcopy, tighten,
     # extent
-    extAlign,
+    ext_align,
     # raster geometry
     is_rotated, is_flipped, flip, rotate, shift, rescale,
-    trans, trim, revRaster,
+    trans, trim, rev_raster,
     # raster values
-    clamp, clampTS, classify, subst, cover, diffRaster,
-    disagg, segregate, selectRange, sortRaster,
-    rangeFill, weightedMean,
+    clamp, clamp_ts, classify, subst, cover, diff_raster,
+    disagg, segregate, selectRange, sort_raster,
+    range_fill, weighted_mean,
     # raster analysis
     boundaries, patches, cellSize, surfArea, terrain, shade, nidp,
-    sieve, rectify, stretch, scaleLinear, scaleRaster,
-    quantileRaster, atan_2,
+    sieve, rectify, stretch, scale_linear, scale_raster,
+    quantile_raster, atan_2,
     # raster processing
-    crop, mask, projectRaster, resample, intersectRast,
-    # vector
-    projectVector, shiftVect, rotateVect, rescaleVect, transVect,
+    crop, mask, resample,
     # scoff
-    scoff, setScoff,
+    scoff, scoff_set,
     # local / cell-based
-    roll, thresh, selectHighest, divide, approximate, extractRange,
+    roll, thresh, select_highest, divide, approximate, extract_range,
 )
 
 # ---- New translation modules -----------------------------------------------
 from .values import (                                                 # noqa: F401
     has_values, in_memory, sources,
-    has_min_max, minMax, setMinMax,
-    values, setValues, focalValues,
-    vectValues, setVectValues,
-    compareGeom,
+    has_min_max, minMax as min_max, setMinMax as set_min_max,
+    values, set_values, setValues, focalValues as focal_values,
+    compareGeom as compare_geom,
 )
 from .levels import (                                                 # noqa: F401
-    is_factor, asFactor,
-    levels, setLevels,
-    cats, setCats, categories,
-    activeCat, setActiveCat,
-    addCats, dropLevels, concats, catalyze,
-    has_colors, coltab, setColtab,
+    is_factor, asFactor as as_factor,
+    levels, setLevels as set_levels,
+    cats, setCats as set_cats, categories,
+    activeCat as active_cat, setActiveCat as set_active_cat,
+    addCats as add_cats, dropLevels as drop_levels, concats, catalyze,
+    has_colors, coltab, setColtab as set_coltab,
 )
 from .names import (                                                  # noqa: F401
-    namesRast, setNamesRast, setNamesInplace,
-    namesVect, setNamesVect,
-    varnames, setVarnames,
-    longnames, setLongnames,
+    names, set_names,
+    varnames, setVarnames as set_varnames,
+    longnames, setLongnames as set_longnames,
 )
 from .app import app, lapp, tapp, xapp, rapp, sapp                   # noqa: F401
-from .focal import focal, focal3D, focalMat                          # noqa: F401
-from .aggregate import aggregate, disagg as aggregateDisagg, aggregateVect  # noqa: F401
+from .focal import focal, focal3D, focalMat as focal_mat              # noqa: F401
+from .aggregate import aggregate, disagg as aggregate_disagg          # noqa: F401
 from .zonal import zonal                                              # noqa: F401
 from .crosstab import crosstab                                        # noqa: F401
 from .freq import freq                                                # noqa: F401
-from .flowAccumulation import flowAccumulation                     # noqa: F401
+from .flowAccumulation import flowAccumulation as flow_accumulation   # noqa: F401
 from .pitfinder import pitfinder                                     # noqa: F401
-from .extract import extract, extractXY                              # noqa: F401
+from .extract import extract, extract_xy                             # noqa: F401
 from .math import (                                                   # noqa: F401
     math, log, sqrt, abs_ as rast_abs, ceiling, floor,
     round_, cumsum, cumprod, cummax, cummin,
-    floorExt, ceilingExt, roundExt,
+    floorExt as floor_ext, ceilingExt as ceiling_ext, roundExt as round_ext,
     ifel,
 )
 from .cells import (                                                  # noqa: F401
     cells,
-    rowFromY, colFromX,
-    cellFromXY, cellFromRowCol,
-    xyFromCell, rowColFromCell,
+    rowFromY as row_from_y, colFromX as col_from_x,
+    cellFromXY as cell_from_xy, cellFromRowCol as cell_from_row_col,
+    xyFromCell as xy_from_cell, rowColFromCell as row_col_from_cell,
 )
 from .init import init                                                # noqa: F401
 from .distance import (                                               # noqa: F401
-    bufferRast, distanceRast,
-    costDist, gridDist,
-    distanceXY, distanceVectSelf, distanceVect, distancePoints,
+    distance,
+    costDist as cost_dist, gridDist as grid_dist,
+    distanceXY as distance_xy, distancePoints as distance_points,
 )
 from .rasterize import rasterize, rasterize_geom                     # noqa: F401
-from .time import has_time, timeInfo, getTime, setTime            # noqa: F401
+from .time import has_time, timeInfo as time_info, getTime as get_time, setTime as set_time  # noqa: F401
 from .write import (                                                  # noqa: F401
-    writeRaster, writeStart, writeValues, writeStop, blocks,
-    writeVector, update,
+    write, write_start, write_values, write_stop, blocks,
+    update,
 )
-from .sample import spatSample, gridSample                         # noqa: F401
+from .sample import spatSample as spat_sample, gridSample as grid_sample  # noqa: F401
 from .stats import (                                                  # noqa: F401
-    rowSums, colSums, rowMeans, colMeans,
-    matchRast, is_in,
-    autocor, layerCor,
+    row_sums, col_sums, row_means, col_means,
+    match_rast, is_in,
+    autocor, layer_cor,
 )
-from .merge import merge as mergeRast, mosaic, mergeVect            # noqa: F401
-from .relate import is_related, relate, relateSelf, adjacent, nearby  # noqa: F401
-from .subset import subsetRast, subsetVect                         # noqa: F401
-from .window import has_window, setWindow, removeWindow, extend    # noqa: F401
+from .merge import merge, mosaic                                      # noqa: F401
+from .relate import is_related, relate, relate_self, adjacent, nearby  # noqa: F401
+from .subset import subset                                            # noqa: F401
+from .window import has_window, setWindow as set_window, removeWindow as remove_window, extend  # noqa: F401
 from .coerce import (                                                 # noqa: F401
-    asPolygons, asLines, asPoints,
-    asArray, asMatrix, asDataFrame,
+    asPolygons as as_polygons, asLines as as_lines, asPoints as as_points,
+    asArray as as_array, asMatrix as as_matrix, asDataFrame as as_data_frame,
 )
 from .spatvec import (                                                # noqa: F401
     geomtype, is_lines, is_polygons, is_points,
     geom, crds,
     expanse, perim, nseg,
-    fillHoles, vectAsDF, geomAsWkt,
+    fillHoles as fill_holes, vectAsDF as vect_as_df, geomAsWkt as geom_as_wkt,
 )
 from .sds import SpatRasterDataset, sds                              # noqa: F401
 from .sprc import SprcCollection, sprc                               # noqa: F401
 from .tessellate import tessellate                                   # noqa: F401
-from .tileApply import tileApply, getTileExtents, makeTiles    # noqa: F401
+from .tileApply import tileApply as tile_apply, getTileExtents as get_tile_extents, makeTiles as make_tiles  # noqa: F401
 
 __version__ = "0.1.0"
 
 __all__ = [
     # High-level API (R-like)
-    "rast", "vect", "ext", "crs", "projPipelines",
-    "registerMethods",
-    "plot", "plotRGB", "points", "lines", "polys", "text",
-    "messages", "characterCRS",
-    "show", "reprRaster", "reprVector", "reprExtent",
+    "rast", "vect", "ext", "crs", "proj_pipelines",
+    "register_methods",
+    "plot", "plot_rgb", "points", "lines", "polys", "text",
+    "messages", "character_crs",
+    "show", "repr_raster", "repr_vector", "repr_extent",
     # values
     "has_values", "in_memory", "sources",
-    "has_min_max", "minMax", "setMinMax",
-    "values", "setValues", "focalValues",
-    "vectValues", "setVectValues", "compareGeom",
+    "has_min_max", "min_max", "set_min_max",
+    "values", "set_values", "setValues", "focal_values",
+    "compare_geom",
     # levels / colors
-    "is_factor", "asFactor",
-    "levels", "setLevels",
-    "cats", "setCats", "categories",
-    "activeCat", "setActiveCat",
-    "addCats", "dropLevels", "concats", "catalyze",
-    "has_colors", "coltab", "setColtab",
+    "is_factor", "as_factor",
+    "levels", "set_levels",
+    "cats", "set_cats", "categories",
+    "active_cat", "set_active_cat",
+    "add_cats", "drop_levels", "concats", "catalyze",
+    "has_colors", "coltab", "set_coltab",
     # names
-    "namesRast", "setNamesRast", "setNamesInplace",
-    "namesVect", "setNamesVect",
-    "varnames", "setVarnames",
-    "longnames", "setLongnames",
+    "names", "set_names",
+    "varnames", "set_varnames",
+    "longnames", "set_longnames",
     # app
     "app", "lapp", "tapp", "xapp", "rapp", "sapp",
     # focal
-    "focal", "focal3D", "focalMat",
+    "focal", "focal3D", "focal_mat",
     # aggregate
-    "aggregate", "aggregateDisagg", "aggregateVect",
+    "aggregate",
     # zonal
     "zonal",
     # crosstab
@@ -352,101 +363,100 @@ __all__ = [
     # freq
     "freq",
     # flow accumulation
-    "flowAccumulation",
+    "flow_accumulation",
     # pitfinder
     "pitfinder",
     # extract
-    "extract", "extractXY",
+    "extract", "extract_xy",
     # math
     "math", "log", "sqrt", "rast_abs", "ceiling", "floor",
     "round_", "cumsum", "cumprod", "cummax", "cummin",
-    "floorExt", "ceilingExt", "roundExt",
+    "floor_ext", "ceiling_ext", "round_ext",
     "ifel",
     # cells
     "cells",
-    "rowFromY", "colFromX",
-    "cellFromXY", "cellFromRowCol",
-    "xyFromCell", "rowColFromCell",
+    "row_from_y", "col_from_x",
+    "cell_from_xy", "cell_from_row_col",
+    "xy_from_cell", "row_col_from_cell",
     # init
     "init",
     # distance
-    "bufferRast", "distanceRast",
-    "costDist", "gridDist",
-    "distanceXY", "distanceVectSelf", "distanceVect", "distancePoints",
+    "distance",
+    "cost_dist", "grid_dist",
+    "distance_xy", "distance_points",
     # rasterize
     "rasterize", "rasterize_geom",
     # time
-    "has_time", "timeInfo", "getTime", "setTime",
+    "has_time", "time_info", "get_time", "set_time",
     # write
-    "writeRaster", "writeStart", "writeValues", "writeStop", "blocks",
-    "writeVector", "update",
+    "write", "write_start", "write_values", "write_stop", "blocks",
+    "update",
     # sample
-    "spatSample", "gridSample",
+    "spat_sample", "grid_sample",
     # stats
-    "rowSums", "colSums", "rowMeans", "colMeans",
-    "matchRast", "is_in",
-    "autocor", "layerCor",
+    "row_sums", "col_sums", "row_means", "col_means",
+    "match_rast", "is_in",
+    "autocor", "layer_cor",
     # merge
-    "mergeRast", "mosaic", "mergeVect",
+    "merge", "mosaic",
     # relate
-    "is_related", "relate", "relateSelf",
+    "is_related", "relate", "relate_self",
     # subset
-    "subsetRast", "subsetVect",
+    "subset",
     # window
-    "has_window", "setWindow", "removeWindow", "extend",
+    "has_window", "set_window", "remove_window", "extend",
     # coerce
-    "asPolygons", "asLines", "asPoints",
-    "asArray", "asMatrix", "asDataFrame",
+    "as_polygons", "as_lines", "as_points",
+    "as_array", "as_matrix", "as_data_frame",
     # spatvec
     "geomtype", "is_lines", "is_polygons", "is_points",
     "geom", "crds",
     "expanse", "perim", "nseg",
-    "fillHoles", "vectAsDF", "geomAsWkt",
+    "fill_holes", "vect_as_df", "geom_as_wkt",
     # dimensions
     "nrow", "ncol", "nlyr", "ncell", "res", "origin",
     # helpers
-    "spatOptions", "deepcopy", "tighten",
+    "spat_options", "deepcopy", "tighten",
     # extent
-    "extAlign",
+    "ext_align",
     # raster geometry
     "is_rotated", "is_flipped", "flip", "rotate", "shift", "rescale",
-    "trans", "trim", "revRaster",
+    "trans", "trim", "rev_raster",
     # raster values
-    "clamp", "clampTS", "classify", "subst", "cover", "diffRaster",
-    "disagg", "segregate", "selectRange", "sortRaster",
-    "rangeFill", "weightedMean",
+    "clamp", "clamp_ts", "classify", "subst", "cover", "diff_raster",
+    "disagg", "segregate", "selectRange", "sort_raster",
+    "range_fill", "weighted_mean",
     # raster analysis
     "boundaries", "patches", "cellSize", "surfArea", "terrain", "shade", "nidp",
-    "sieve", "rectify", "stretch", "scaleLinear", "scaleRaster",
-    "quantileRaster", "atan_2",
-    # raster processing
-    "crop", "mask", "projectRaster", "resample", "intersectRast",
+    "sieve", "rectify", "stretch", "scale_linear", "scale_raster",
+    "quantile_raster", "atan_2",
+    # unified generics + raster processing
+    "buffer", "project", "intersect",
+    "crop", "mask", "resample",
     # vector
-    "projectVector", "shiftVect", "rotateVect", "rescaleVect", "transVect",
     # scoff
-    "scoff", "setScoff",
-    "roll", "thresh", "selectHighest", "divide", "approximate", "extractRange",
+    "scoff", "scoff_set",
+    "roll", "thresh", "select_highest", "divide", "approximate", "extract_range",
     # arith (Arith_generics.R)
     "is_na", "not_na", "is_true", "is_false",
     "is_nan", "is_finite", "is_infinite",
     "any_na", "all_na", "no_na", "count_na",
-    "whichMax", "whichMin", "whichLyr",
-    "whereMax", "whereMin",
+    "which_max", "which_min", "which_lyr",
+    "where_max", "where_min",
     "rast_sum", "rast_mean", "rast_min", "rast_max", "global_",
-    "rast_median", "rast_modal", "stdevRast",
-    "compareRast", "logicRastFn",
+    "rast_median", "rast_modal", "stdev_rast",
+    "compare_rast", "logic_rast_fn",
     "as_int_rast", "as_bool_rast",
     "is_bool_rast", "is_int_rast", "is_num_rast",
     # geom (geom.R)
-    "is_valid", "makeValid",
-    "unionVect", "intersectVect", "erase", "symdif", "coverVect",
-    "cropVect", "maskVect",
-    "bufferVect", "disaggVect", "flipVect", "spin",
+    "is_valid", "make_valid",
+    "union", "erase", "symdif",
+    "spin",
     "hull", "delaunay", "voronoi", "elongate",
-    "mergeLines", "makeNodes", "removeDupNodes",
-    "simplifyGeom", "thinNodes", "thin",
-    "sharedPaths", "snapVect", "gaps",
-    "forceCCW", "widthVect", "clearance",
+    "merge_lines", "make_nodes", "remove_dup_nodes",
+    "simplify_geom", "thin_nodes", "thin",
+    "shared_paths", "snap", "gaps",
+    "force_ccw", "width", "clearance",
     "is_empty",
     # Core types (C++)
     "SpatRaster", "SpatVector", "SpatExtent", "SpatOptions",
@@ -458,7 +468,7 @@ __all__ = [
     "SprcCollection", "sprc",
     # tessellate
     "tessellate",
-    # tileApply
-    "tileApply", "getTileExtents", "makeTiles",
+    # tile_apply
+    "tile_apply", "get_tile_extents", "make_tiles",
     "__version__",
 ]

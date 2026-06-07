@@ -399,7 +399,7 @@ def _tile_worker(args: tuple) -> str:
     from tappa.generics import crop as _crop
     from tappa.rast import rast
     from tappa.window import setWindow
-    from tappa.write import writeRaster
+    from tappa.write import write
 
     fun = _deserialize_fun(fun_blob)
     kwargs = _deserialize_fun(kw_blob) if kw_blob else {}
@@ -414,9 +414,9 @@ def _tile_worker(args: tuple) -> str:
         ie = SpatExtent(*inner)
         r = _crop(r, ie, snap="near")
     if datatype:
-        writeRaster(r, out_file, overwrite=True, datatype=datatype)
+        write(r, out_file, overwrite=True, datatype=datatype)
     else:
-        writeRaster(r, out_file, overwrite=True)
+        write(r, out_file, overwrite=True)
     return out_file
 
 
@@ -440,8 +440,8 @@ def _ensure_file_backed(x: SpatRaster) -> tuple:
         os.unlink(tmp)
     except OSError:
         pass
-    from .write import writeRaster
-    writeRaster(x, tmp, overwrite=True)
+    from .write import write
+    write(x, tmp, overwrite=True)
     return tmp, True
 
 
@@ -574,7 +574,7 @@ def tileApply(
             # sequential path - same disk-streaming contract as the workers
             from .generics import crop as _crop
             from .window import setWindow
-            from .write import writeRaster
+            from .write import write
 
             out_files = []
             for i, p in enumerate(exts):
@@ -590,9 +590,9 @@ def tileApply(
                     ie = SpatExtent(*p["inner"])
                     r = _crop(r, ie, snap="near")
                 if datatype:
-                    writeRaster(r, tile_files[i], overwrite=True, datatype=datatype)
+                    write(r, tile_files[i], overwrite=True, datatype=datatype)
                 else:
-                    writeRaster(r, tile_files[i], overwrite=True)
+                    write(r, tile_files[i], overwrite=True)
                 out_files.append(tile_files[i])
                 del r, y
 
@@ -630,8 +630,8 @@ def tileApply(
             vrt_path = rc.make_vrt(filename=vrtfile, overwrite=True)
             v = _rast(str(vrt_path))
             if filename:
-                from .write import writeRaster
-                out = writeRaster(v, filename, overwrite=overwrite, datatype=datatype)
+                from .write import write
+                out = write(v, filename, overwrite=overwrite, datatype=datatype)
                 return out
             keep_tiles = True
             return v

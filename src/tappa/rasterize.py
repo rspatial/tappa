@@ -7,6 +7,7 @@ import numpy as np
 
 from ._terra import SpatRaster, SpatVector, SpatOptions
 from ._helpers import messages, spatoptions
+from .names import _cpp_layer_names
 
 
 def _opt() -> SpatOptions:
@@ -105,11 +106,11 @@ def rasterize(
         for lr in layers[1:]:
             out.addSource(lr.deepcopy(), True, opt)
         out = messages(out, "rast")
-        split_names = list(svc.names)
+        split_names = _cpp_layer_names(svc)
         if split_names and len(split_names) == out.nlyr():
-            from .names import setNamesRast
+            from .names import _set_names_rast
 
-            out = setNamesRast(out, [str(n) for n in split_names])
+            out = _set_names_rast(out, [str(n) for n in split_names])
         return out
 
     geom_type_raw = x.geomtype()
@@ -119,7 +120,7 @@ def rasterize(
         xy = np.array(x.coordinates(), dtype=float).reshape(-1, 2)
         if isinstance(field, (int, float)) and not isinstance(field, bool):
             values_arr = np.full(len(xy), float(field))
-        elif isinstance(field, str) and field != "" and field in list(x.names):
+        elif isinstance(field, str) and field != "" and field in _cpp_layer_names(x):
             from ._helpers import _getSpatDF
 
             df = _getSpatDF(x.df)
@@ -141,7 +142,7 @@ def rasterize(
         if isinstance(field, (int, float)) and not isinstance(field, bool):
             values_vec = [float(field)]
         elif isinstance(field, str) and field != "":
-            if field not in list(x.names):
+            if field not in _cpp_layer_names(x):
                 raise ValueError(f"{field!r} is not a field in x")
             field_str = field
             if na_rm:
@@ -157,9 +158,9 @@ def rasterize(
                 except (TypeError, ValueError):
                     mask = np.ones(len(col), dtype=bool)
                 if not mask.all():
-                    from .subset import subsetVect
+                    from .subset import _subset_vect
 
-                    x = subsetVect(x, mask.tolist())
+                    x = _subset_vect(x, mask.tolist())
 
         if fun is not None:
             fun_str = fun if isinstance(fun, str) else getattr(fun, "__name__", "last")

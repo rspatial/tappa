@@ -2,7 +2,7 @@
 aggregate.py — spatial aggregation and disaggregation of raster and vector objects.
 """
 from __future__ import annotations
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 import numpy as np
 
 from ._terra import SpatRaster, SpatVector
@@ -22,7 +22,7 @@ _AGG_FUNS = {
 }
 
 
-def aggregate(
+def _aggregate_rast(
     x: SpatRaster,
     fact: Union[int, List[int]],
     fun: Union[str, Callable] = "mean",
@@ -152,7 +152,27 @@ def disagg(
 # aggregate SpatVector
 # ---------------------------------------------------------------------------
 
-def aggregateVect(
+def aggregate(
+    x: Union[SpatRaster, SpatVector],
+    *args: Any,
+    **kwargs: Any,
+) -> Union[SpatRaster, SpatVector]:
+    """
+    Aggregate a :class:`SpatRaster` or :class:`SpatVector` — like R ``aggregate()``.
+
+    For rasters: ``aggregate(x, fact, fun='mean', …)``.
+    For vectors: ``aggregate(x, by=None, dissolve=True)``.
+    """
+    if isinstance(x, SpatRaster):
+        return _aggregate_rast(x, *args, **kwargs)
+    if isinstance(x, SpatVector):
+        return _aggregate_vect(x, *args, **kwargs)
+    raise TypeError(
+        f"aggregate: expected SpatRaster or SpatVector, got {type(x).__name__}"
+    )
+
+
+def _aggregate_vect(
     x: SpatVector,
     by: Optional[Union[str, List[str]]] = None,
     dissolve: bool = True,
@@ -184,7 +204,7 @@ def aggregateVect(
             by_str = str(by_list[0])
         else:
             raise NotImplementedError(
-                "aggregateVect: aggregating by multiple columns is not yet "
+                "aggregate_vect: aggregating by multiple columns is not yet "
                 "supported (the C++ binding takes a single column name)"
             )
 
@@ -192,7 +212,7 @@ def aggregateVect(
         # No grouping column: dissolve every feature into one (R: aggregate(v)).
         # The C++ side has a dedicated entry point for this case.
         out = x.aggregate_nofield(bool(dissolve))
-        return messages(out, "aggregateVect")
+        return messages(out, "aggregate_vect")
 
     xc = _cpp_vect_aggregate(x, by_str, bool(dissolve))
-    return messages(xc, "aggregateVect")
+    return messages(xc, "aggregate_vect")

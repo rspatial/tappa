@@ -141,7 +141,8 @@ def freq(
         return pd.DataFrame(columns=["layer", "value", "count"])
 
     opt = SpatOptions()
-    nms = list(x.names)
+    from .names import _cpp_layer_names
+    nms = _cpp_layer_names(x)
 
     # --- count a single value -------------------------------------------------
     if value is not None:

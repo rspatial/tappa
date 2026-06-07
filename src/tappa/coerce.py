@@ -281,7 +281,8 @@ def asDataFrame(
 
     nr, nc = x.nrow(), x.ncol()
     nl = x.nlyr()
-    nms = list(x.names)
+    from .names import _cpp_layer_names
+    nms = _cpp_layer_names(x)
 
     v = np.array(x.readValues(0, nr, 0, nc), dtype=float).reshape(nr * nc, nl, order='F')
 

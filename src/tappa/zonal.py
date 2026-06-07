@@ -105,6 +105,7 @@ def zonal(
         nr, nc_ = result.nrow(), result.ncol()
         import numpy as np
         vals = np.array(result.readValues(0, nr, 0, nc_), dtype=float)
-        nms = list(result.names)
+        from .names import _cpp_layer_names
+        nms = _cpp_layer_names(result)
         df = pd.DataFrame(vals.reshape(nr * nc_, len(nms)), columns=nms)
     return df

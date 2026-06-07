@@ -35,7 +35,7 @@ def _read_values_layer_matrix(x: SpatRaster) -> np.ndarray:
 # Row / column statistics
 # ---------------------------------------------------------------------------
 
-def rowSums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def row_sums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Sum of each row across columns, returned separately per layer.
 
@@ -57,7 +57,7 @@ def rowSums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     return np.sum(vals_3d, axis=1)
 
 
-def colSums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def col_sums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Sum of each column across rows, returned separately per layer.
 
@@ -79,7 +79,7 @@ def colSums(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     return np.sum(vals_3d, axis=0)
 
 
-def rowMeans(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def row_means(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Mean of each row across columns, returned separately per layer.
 
@@ -101,7 +101,7 @@ def rowMeans(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     return np.mean(vals_3d, axis=1)
 
 
-def colMeans(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
+def col_means(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
     """
     Mean of each column across rows, returned separately per layer.
 
@@ -127,7 +127,7 @@ def colMeans(x: SpatRaster, na_rm: bool = False) -> np.ndarray:
 # match / is_in
 # ---------------------------------------------------------------------------
 
-def matchRast(
+def match_rast(
     x: SpatRaster,
     table: List,
     nomatch: float = float("nan"),
@@ -471,8 +471,8 @@ def autocor(
     import warnings as _warnings
     if x.nlyr() > 1:
         _warnings.warn("autocor: only the first layer of x is used")
-        from .subset import subsetRast
-        x = subsetRast(x, 0)
+        from .subset import _subset_rast
+        x = _subset_rast(x, 0)
 
     if method not in ("moran", "geary"):
         raise ValueError(
@@ -496,7 +496,7 @@ def autocor(
 # layerCor — layer-wise correlation matrix
 # ---------------------------------------------------------------------------
 
-def layerCor(
+def layer_cor(
     x: SpatRaster,
     fun: str = "pearson",
     *,

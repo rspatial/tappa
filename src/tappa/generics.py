@@ -18,7 +18,7 @@ from .freq import freq
 from .flowAccumulation import flowAccumulation
 from .pitfinder import pitfinder
 
-# Capture raw C++ method references at import time, before registerMethods()
+# Capture raw C++ method references at import time, before register_methods()
 # patches them.  Every Python-level wrapper that delegates to a C++ method
 # with the same name must use these saved references to avoid infinite
 # recursion when the method-style API (r.crop(e), etc.) is in use.
@@ -43,31 +43,30 @@ __all__ = [
     # dimensions / metadata
     "nrow", "ncol", "nlyr", "ncell", "res", "origin",
     # helpers
-    "spatOptions", "deepcopy", "tighten",
+    "spat_options", "deepcopy", "tighten",
     # extent
-    "extAlign",
+    "ext_align",
     # raster geometry
     "is_rotated", "is_flipped", "flip", "rotate", "shift", "rescale",
-    "trans", "trim", "revRaster",
+    "trans", "trim", "rev_raster",
     # raster values
-    "clamp", "clampTS", "classify", "subst", "cover", "diffRaster",
-    "disagg", "segregate", "selectRange", "sortRaster",
-    "rangeFill", "weightedMean",
+    "clamp", "clamp_ts", "classify", "subst", "cover", "diff_raster",
+    "disagg", "segregate", "selectRange", "sort_raster",
+    "range_fill", "weighted_mean",
     # raster analysis
     "boundaries", "patches", "cellSize", "surfArea", "terrain",
-    "sieve", "rectify", "stretch", "scaleLinear", "scaleRaster",
-    "quantileRaster", "atan_2", "crosstab", "freq", "flowAccumulation",
+    "sieve", "rectify", "stretch", "scale_linear", "scale_raster",
+    "quantile_raster", "atan_2", "crosstab", "freq",
+    "flow_accumulation", "flowAccumulation",
     "pitfinder",
     # raster processing
-    "crop", "mask", "projectRaster", "resample", "intersectRast",
+    "crop", "mask", "resample",
     # vector
-    "projectVector", "shiftVect", "rotateVect", "rescaleVect",
-    "transVect",
     # scoff
-    "scoff", "setScoff",
+    "scoff", "scoff_set",
     # new local / cell-based
-    "roll", "thresh", "selectHighest", "divide", "approximate",
-    "extractRange",
+    "roll", "thresh", "select_highest", "divide", "approximate",
+    "extract_range",
 ]
 
 
@@ -127,7 +126,7 @@ def origin(x: SpatRaster) -> List[float]:
 
 # ── Options / utilities ──────────────────────────────────────────────────────
 
-def spatOptions() -> SpatOptions:
+def spat_options() -> SpatOptions:
     """Like R ``spatOptions()`` — return a new default :class:`SpatOptions`."""
     return SpatOptions()
 
@@ -145,7 +144,7 @@ def tighten(x: SpatRaster) -> SpatRaster:
 
 # ── Extent align ─────────────────────────────────────────────────────────────
 
-def extAlign(e: SpatExtent, y: Any, snap: str = "near") -> SpatExtent:
+def ext_align(e: SpatExtent, y: Any, snap: str = "near") -> SpatExtent:
     """
     Align a :class:`SpatExtent` to raster *y*, like R ``align(x, y)``.
 
@@ -169,12 +168,25 @@ def is_flipped(x: SpatRaster) -> bool:
     return x.is_flipped()
 
 
-def flip(x: SpatRaster, direction: str = "vertical", filename: str = "", **kw: Any) -> SpatRaster:
+def flip(
+    x: Union[SpatRaster, SpatVector],
+    direction: str = "vertical",
+    filename: str = "",
+    **kw: Any,
+) -> Union[SpatRaster, SpatVector]:
     """
-    Flip a raster — like R ``flip()``.
+    Flip a :class:`SpatRaster` or :class:`SpatVector` — like R ``flip()``.
 
     *direction*: ``"vertical"`` (default) or ``"horizontal"``.
+    Raster-only argument: ``filename``.
     """
+    if isinstance(x, SpatVector):
+        from .geom import _flip_vect
+        return _flip_vect(x, direction)
+    if not isinstance(x, SpatRaster):
+        raise TypeError(
+            f"flip: expected SpatRaster or SpatVector, got {type(x).__name__}"
+        )
     d = direction.lower()
     if d not in ("vertical", "horizontal"):
         raise ValueError("direction must be 'vertical' or 'horizontal'")
@@ -211,7 +223,8 @@ def shift(
         from .extent import ext as _ext
         return _ext(v[0] + dx, v[1] + dx, v[2] + dy, v[3] + dy)
     if isinstance(x, SpatVector):
-        x = x.shift(dx, dy)
+        from .geom import _cpp_vect_shift
+        x = _cpp_vect_shift(x, dx, dy)
         return messages(x, "shift")
     raise TypeError("shift: unsupported type")
 
@@ -245,7 +258,8 @@ def rescale(
         e = x.extent().vector
         _x0 = x0 if x0 is not None else (e[0] + e[1]) / 2.0
         _y0 = y0 if y0 is not None else (e[2] + e[3]) / 2.0
-        x = x.rescale(fx, fy, float(_x0), float(_y0))
+        from .geom import _cpp_vect_rescale
+        x = _cpp_vect_rescale(x, fx, fy, float(_x0), float(_y0))
         return messages(x, "rescale")
     raise TypeError("rescale: unsupported type")
 
@@ -257,7 +271,8 @@ def trans(x: Any, filename: str = "", **kw: Any) -> Any:
         x = x.transpose(opt)
         return messages(x, "trans")
     if isinstance(x, SpatVector):
-        x = x.transpose()
+        from .geom import _cpp_vect_trans
+        x = _cpp_vect_trans(x)
         return messages(x, "trans")
     raise TypeError("trans: unsupported type")
 
@@ -278,7 +293,7 @@ def trim(
     return messages(x, "trim")
 
 
-def revRaster(x: SpatRaster, filename: str = "", **kw: Any) -> SpatRaster:
+def rev_raster(x: SpatRaster, filename: str = "", **kw: Any) -> SpatRaster:
     """Reverse layer order — like R ``rev()`` on a SpatRaster."""
     opt = _opt(filename, **kw)
     x = x.reverse(opt)
@@ -287,7 +302,7 @@ def revRaster(x: SpatRaster, filename: str = "", **kw: Any) -> SpatRaster:
 
 # ── Raster values ─────────────────────────────────────────────────────────────
 
-def rangeFill(
+def range_fill(
     x: SpatRaster,
     limit: int,
     circular: bool = False,
@@ -300,7 +315,7 @@ def rangeFill(
     return messages(x, "rangeFill")
 
 
-def weightedMean(
+def weighted_mean(
     x: SpatRaster,
     w: Union[SpatRaster, List[float]],
     na_rm: bool = False,
@@ -340,17 +355,17 @@ def clamp(
     return messages(x, "clamp")
 
 
-def clampTS(
+def clamp_ts(
     x: SpatRaster,
     min: bool = False,
     max: bool = True,
     filename: str = "",
     **kw: Any,
 ) -> SpatRaster:
-    """Clamp time series to min/max — like R ``clampTS()``."""
+    """Clamp time series to min/max — like R ``clamp_ts()``."""
     opt = _opt(filename, **kw)
-    x = x.clampTS(min, max, opt)
-    return messages(x, "clampTS")
+    x = x.clamp_ts(min, max, opt)
+    return messages(x, "clamp_ts")
 
 
 def classify(
@@ -427,13 +442,30 @@ def subst(
 
 
 def cover(
-    x: SpatRaster,
-    y: Optional[SpatRaster] = None,
+    x: Union[SpatRaster, SpatVector],
+    y: Optional[Union[SpatRaster, SpatVector]] = None,
     values: Optional[float] = None,
+    identity: bool = False,
+    expand: bool = True,
     filename: str = "",
     **kw: Any,
-) -> SpatRaster:
-    """Replace NA with values from *y* — like R ``cover()``."""
+) -> Union[SpatRaster, SpatVector]:
+    """
+    Cover — like R ``cover()``.
+
+    For rasters, replace NA with values from *y* (or self).
+    For vectors, replace overlapping parts of *x* with *y*.
+    Raster-only: ``values``, ``filename``.  Vector-only: ``identity``, ``expand``.
+    """
+    if isinstance(x, SpatVector):
+        from .geom import _cover_vect
+        if y is None or not isinstance(y, SpatVector):
+            raise TypeError("cover: vector cover requires a SpatVector y")
+        return _cover_vect(x, y, identity=identity, expand=expand)
+    if not isinstance(x, SpatRaster):
+        raise TypeError(
+            f"cover: expected SpatRaster or SpatVector, got {type(x).__name__}"
+        )
     opt = _opt(filename, **kw)
     na_vals = [float("nan")] if values is None else [float(values)]
     if y is None:
@@ -443,7 +475,7 @@ def cover(
     return messages(x, "cover")
 
 
-def diffRaster(x: SpatRaster, lag: int = 1, filename: str = "", **kw: Any) -> SpatRaster:
+def diff_raster(x: SpatRaster, lag: int = 1, filename: str = "", **kw: Any) -> SpatRaster:
     """Layer-to-layer differences — like R ``diff()``."""
     n = x.nlyr()
     lag = int(round(lag))
@@ -460,13 +492,28 @@ def diffRaster(x: SpatRaster, lag: int = 1, filename: str = "", **kw: Any) -> Sp
 
 
 def disagg(
-    x: SpatRaster,
-    fact: Union[int, Sequence[int]],
+    x: Union[SpatRaster, SpatVector],
+    fact: Union[int, Sequence[int], None] = None,
     method: str = "near",
     filename: str = "",
+    segments: bool = False,
     **kw: Any,
-) -> SpatRaster:
-    """Disaggregate (increase resolution) — like R ``disagg()``."""
+) -> Union[SpatRaster, SpatVector]:
+    """Disaggregate — like R ``disagg()``.
+
+    For rasters, *fact* increases cell resolution (``method``: ``near`` or
+    ``bilinear``).  For vectors, splits multi-part geometries (``segments``
+    breaks lines/polygons into segments).  Raster-only: ``filename``.
+    """
+    if isinstance(x, SpatVector):
+        from .geom import _disagg_vect
+        return _disagg_vect(x, segments=segments)
+    if not isinstance(x, SpatRaster):
+        raise TypeError(
+            f"disagg: expected SpatRaster or SpatVector, got {type(x).__name__}"
+        )
+    if fact is None:
+        raise TypeError("disagg: raster disaggregation requires fact")
     method = method.lower()
     if method not in ("near", "bilinear"):
         raise ValueError("disagg: method must be 'near' or 'bilinear'")
@@ -518,7 +565,7 @@ def selectRange(
     return messages(x, "selectRange")
 
 
-def sortRaster(
+def sort_raster(
     x: SpatRaster,
     decreasing: bool = False,
     order: bool = False,
@@ -678,20 +725,20 @@ def stretch(
     return messages(x, "stretch")
 
 
-def scaleLinear(
+def scale_linear(
     x: SpatRaster,
     min: float = 0.0,
     max: float = 1.0,
     filename: str = "",
     **kw: Any,
 ) -> SpatRaster:
-    """Linear rescale to [min, max] — like R ``scaleLinear()``."""
+    """Linear rescale to [min, max] — like R ``scale_linear()``."""
     opt = _opt(filename, **kw)
     x = x.scaleLinear(min, max, opt)
-    return messages(x, "scaleLinear")
+    return messages(x, "scale_linear")
 
 
-def scaleRaster(
+def scale_raster(
     x: SpatRaster,
     center: Union[bool, List[float]] = True,
     scale: Union[bool, List[float]] = True,
@@ -714,7 +761,7 @@ def scaleRaster(
     return messages(x, "scale")
 
 
-def quantileRaster(
+def quantile_raster(
     x: SpatRaster,
     probs: Optional[List[float]] = None,
     na_rm: bool = False,
@@ -739,20 +786,33 @@ def atan_2(y: SpatRaster, x: SpatRaster, filename: str = "", **kw: Any) -> SpatR
 # ── Raster processing ────────────────────────────────────────────────────────
 
 def crop(
-    x: SpatRaster,
+    x: Union[SpatRaster, SpatVector],
     y: Any,
     snap: str = "near",
     mask: bool = False,
     touches: bool = True,
     extend: bool = False,
     filename: str = "",
+    use_ext: bool = False,
     **kw: Any,
-) -> SpatRaster:
+) -> Union[SpatRaster, SpatVector]:
     """
-    Crop a raster — like R ``crop()``.
+    Crop a :class:`SpatRaster` or :class:`SpatVector` — like R ``crop()``.
 
     *y* can be a :class:`SpatExtent`, :class:`SpatRaster`, or :class:`SpatVector`.
+
+    Raster-only arguments: ``snap``, ``mask``, ``touches``, ``extend``,
+    ``filename``.  Vector-only argument: ``use_ext``.
     """
+    if isinstance(x, SpatVector):
+        from .geom import _crop_vect
+        return _crop_vect(x, y, use_ext=use_ext)
+
+    if not isinstance(x, SpatRaster):
+        raise TypeError(
+            f"crop: expected SpatRaster or SpatVector, got {type(x).__name__}"
+        )
+
     opt = _opt(filename, **kw)
     if mask and isinstance(y, SpatVector):
         x = x.crop_mask(y, snap, touches, extend, opt)
@@ -770,7 +830,7 @@ def crop(
 
 
 def mask(
-    x: SpatRaster,
+    x: Union[SpatRaster, SpatVector],
     mask_obj: Any,
     inverse: bool = False,
     mask_values: Optional[List[float]] = None,
@@ -778,13 +838,25 @@ def mask(
     touches: bool = True,
     filename: str = "",
     **kw: Any,
-) -> SpatRaster:
+) -> Union[SpatRaster, SpatVector]:
     """
-    Mask a raster — like R ``mask()``.
+    Mask a :class:`SpatRaster` or :class:`SpatVector` — like R ``mask()``.
 
     *mask_obj* can be a :class:`SpatRaster`, :class:`SpatVector`, or
     :class:`SpatExtent`.
+
+    Raster-only arguments: ``mask_values``, ``update_value``, ``touches``,
+    ``filename``.
     """
+    if isinstance(x, SpatVector):
+        from .geom import _mask_vect
+        return _mask_vect(x, mask_obj, inverse=inverse)
+
+    if not isinstance(x, SpatRaster):
+        raise TypeError(
+            f"mask: expected SpatRaster or SpatVector, got {type(x).__name__}"
+        )
+
     opt = _opt(filename, **kw)
     if isinstance(mask_obj, SpatRaster):
         mv = mask_values if mask_values is not None else [float("nan")]
@@ -800,7 +872,7 @@ def mask(
     return messages(x, "mask")
 
 
-def projectRaster(
+def _project_raster(
     x: SpatRaster,
     y: Union[SpatRaster, str],
     method: str = "bilinear",
@@ -861,8 +933,8 @@ def resample(
     return messages(x, "resample")
 
 
-def intersectRast(x: SpatRaster, y: SpatRaster) -> SpatRaster:
-    """Intersection geometry and values — like R ``intersect()`` on SpatRaster."""
+def _intersect_rast(x: SpatRaster, y: SpatRaster) -> SpatRaster:
+    """Raster–raster intersection (internal)."""
     opt = SpatOptions()
     x = x.intersect(y, opt)
     return messages(x, "intersect")
@@ -870,7 +942,7 @@ def intersectRast(x: SpatRaster, y: SpatRaster) -> SpatRaster:
 
 # ── Vector ───────────────────────────────────────────────────────────────────
 
-def projectVector(
+def _project_vector(
     x: SpatVector,
     y: Union[SpatRaster, SpatVector, str],
     partial: bool = False,
@@ -902,39 +974,10 @@ def projectVector(
     return messages(x, "project")
 
 
-def shiftVect(x: SpatVector, dx: float = 0.0, dy: float = 0.0) -> SpatVector:
-    """Shift vector coordinates — like R ``shift()`` on SpatVector."""
-    x = x.shift(dx, dy)
-    return messages(x, "shift")
-
-
-def rotateVect(x: SpatVector, longitude: float = 0.0, left: bool = True) -> SpatVector:
-    """Rotate vector longitude — like R ``rotate()`` on SpatVector (non-split)."""
+def _rotate_vect(x: SpatVector, longitude: float = 0.0, left: bool = True) -> SpatVector:
+    """Rotate vector longitude (internal)."""
     x = x.rotate_longitude(longitude, left)
     return messages(x, "rotate")
-
-
-def rescaleVect(
-    x: SpatVector,
-    fx: float = 0.5,
-    fy: Optional[float] = None,
-    x0: Optional[float] = None,
-    y0: Optional[float] = None,
-) -> SpatVector:
-    """Rescale vector geometry — like R ``rescale()`` on SpatVector."""
-    if fy is None:
-        fy = fx
-    e = x.extent().vector
-    _x0 = x0 if x0 is not None else (e[0] + e[1]) / 2.0
-    _y0 = y0 if y0 is not None else (e[2] + e[3]) / 2.0
-    x = x.rescale(fx, fy, float(_x0), float(_y0))
-    return messages(x, "rescale")
-
-
-def transVect(x: SpatVector) -> SpatVector:
-    """Transpose a vector — like R ``t()`` on SpatVector."""
-    x = x.transpose()
-    return messages(x, "trans")
 
 
 # ── Scale-offset ─────────────────────────────────────────────────────────────
@@ -951,7 +994,7 @@ def scoff(x: SpatRaster) -> Any:
     return [[s, o] for s, o in zip(scales, offsets)]
 
 
-def setScoff(
+def scoff_set(
     x: SpatRaster,
     value: Optional[List[List[float]]] = None,
 ) -> SpatRaster:
@@ -993,7 +1036,7 @@ def _write_bsq(template: SpatRaster, data: "np.ndarray") -> SpatRaster:
     Each layer is written separately to avoid setValues issues with
     multi-source rasters (created via addSource).
     """
-    from .values import setValues
+    from .values import set_values
     from ._terra import SpatOptions as _SO
 
     nlyr = int(data.shape[0])
@@ -1004,7 +1047,7 @@ def _write_bsq(template: SpatRaster, data: "np.ndarray") -> SpatRaster:
 
     layers = []
     for i in range(nlyr):
-        lyr = setValues(base, data[i].tolist())
+        lyr = set_values(base, data[i].tolist())
         layers.append(lyr)
 
     if nlyr == 1:
@@ -1183,7 +1226,7 @@ def thresh(
     return messages(out, "thresh")
 
 
-def selectHighest(
+def select_highest(
     x: SpatRaster,
     n: int = 1,
     low: bool = False,
@@ -1205,10 +1248,10 @@ def selectHighest(
         Select the *n* lowest values instead (like R ``low=TRUE``).
     """
     import numpy as np
-    from .subset import subsetRast
+    from .subset import _subset_rast
 
     if x.nlyr() > 1:
-        x = subsetRast(x, 0)
+        x = _subset_rast(x, 0)
 
     ncell_total = x.nrow() * x.ncol()
     n = min(ncell_total, max(1, int(n)))
@@ -1239,8 +1282,8 @@ def _divide_split_ns(v2d: "np.ndarray", r0: int, r1: int, c0: int, c1: int):
     """Find the NS split row for a region using cumulative value sums."""
     import numpy as np
     region = np.where(np.isnan(v2d[r0:r1, c0:c1]), 0.0, v2d[r0:r1, c0:c1])
-    rowSums = region.sum(axis=1)
-    cumsum = np.cumsum(rowSums)
+    row_sums = region.sum(axis=1)
+    cumsum = np.cumsum(row_sums)
     total = cumsum[-1] if len(cumsum) > 0 else 0.0
     if total == 0.0:
         m = (r1 - r0) // 2
@@ -1254,8 +1297,8 @@ def _divide_split_we(v2d: "np.ndarray", r0: int, r1: int, c0: int, c1: int):
     """Find the WE split column for a region using cumulative value sums."""
     import numpy as np
     region = np.where(np.isnan(v2d[r0:r1, c0:c1]), 0.0, v2d[r0:r1, c0:c1])
-    colSums = region.sum(axis=0)
-    cumsum = np.cumsum(colSums)
+    col_sums = region.sum(axis=0)
+    cumsum = np.cumsum(col_sums)
     total = cumsum[-1] if len(cumsum) > 0 else 0.0
     if total == 0.0:
         m = (c1 - c0) // 2
@@ -1294,12 +1337,12 @@ def divide(
         After rasterizing zones, mask cells that are NA in *x*.
     """
     import numpy as np
-    from .subset import subsetRast
+    from .subset import _subset_rast
 
     if x.nlyr() > 1:
         import warnings as _w
         _w.warn("divide: only the first layer is used")
-        x = subsetRast(x, 0)
+        x = _subset_rast(x, 0)
 
     n = max(1, int(round(n)))
     nrow_r = x.nrow()
@@ -1418,7 +1461,7 @@ def approximate(
     return messages(out, "approximate")
 
 
-def extractRange(
+def extract_range(
     x: SpatRaster,
     y: Any,
     first: Union[int, List[int]],
@@ -1479,3 +1522,18 @@ def extractRange(
         else:
             result.append(row.to_frame().T.reset_index(drop=True))
     return result
+
+
+# R-style camelCase aliases (tests and method registration)
+flow_accumulation = flowAccumulation
+clampTS = clamp_ts
+diffRaster = diff_raster
+sortRaster = sort_raster
+rangeFill = range_fill
+weightedMean = weighted_mean
+scaleLinear = scale_linear
+scaleRaster = scale_raster
+quantileRaster = quantile_raster
+revRaster = rev_raster
+selectHighest = select_highest
+extractRange = extract_range
