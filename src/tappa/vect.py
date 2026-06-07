@@ -90,6 +90,7 @@ def vect(
     layer: str = "",
     query: str = "",
     crs: str = "",
+    geom: Optional[Any] = None,
     **kwargs: Any,
 ) -> SpatVector:
     """
@@ -148,6 +149,30 @@ def vect(
         import numpy as np
     except ImportError:
         np = None  # type: ignore
+
+    try:
+        import pandas as pd  # type: ignore
+    except ImportError:
+        pd = None  # type: ignore
+
+    if pd is not None and isinstance(x, pd.DataFrame):
+        if geom is None:
+            raise ValueError(
+                "vect: DataFrame input requires geom=(xcol, ycol)"
+            )
+        if not (isinstance(geom, (list, tuple)) and len(geom) == 2):
+            raise ValueError(
+                "vect: geom must be a 2-tuple of column names (x, y)"
+            )
+        xcol, ycol = geom
+        xy = x[[xcol, ycol]].to_numpy(dtype=float)
+        v = _vect_xy_matrix(xy, crs)
+        attrs = x.drop(columns=[xcol, ycol])
+        if attrs.shape[1] > 0:
+            from ._helpers import _makeSpatDF
+            v.set_df(_makeSpatDF(attrs))
+        return v
+
     if np is not None and isinstance(x, np.ndarray):
         if x.ndim == 2 and x.shape[1] == 2:
             if type is not None and type not in ("points", None):

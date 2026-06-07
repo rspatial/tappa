@@ -28,9 +28,15 @@ __all__ = ["plot", "plotRGB", "points", "lines", "polys", "text"]
 
 # ── Default palette ──────────────────────────────────────────────────────────
 
-def _default_palette(n: int = 255) -> List[str]:
+def _default_palette(n: int = 100) -> List[str]:
     """
-    Return the default terra colour ramp (a reverse of matplotlib's terrain_r).
+    Return the default tappa colour ramp.
+
+    Mirrors R ``terra``'s ``.default.pal()`` — ``map.pal("viridis", 100)`` —
+    so plots match what users see in the R package out of the box.
+    Viridis is also colour-blind friendly and prints well in greyscale,
+    and (importantly here) does not start at white, so the lowest interval
+    of an interval plot is clearly visible against a white page.
 
     Args:
         n: Number of colours.
@@ -40,7 +46,7 @@ def _default_palette(n: int = 255) -> List[str]:
     """
     import matplotlib as mpl
     import matplotlib.colors as mc
-    cmap = mpl.colormaps["terrain_r"].resampled(n)
+    cmap = mpl.colormaps["viridis"].resampled(n)
     return [mc.to_hex(cmap(i)) for i in range(n)]
 
 

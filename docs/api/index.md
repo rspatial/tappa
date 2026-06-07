@@ -54,7 +54,7 @@ re-exported from the top-level package. Method-style operations like
 ## Submodules
 
 The functional API is organised into thematic submodules. Each submodule is
-also reachable directly (e.g. `tappa.geom.buffer_vect`).
+also reachable directly (e.g. `tappa.geom.bufferVect`).
 
 ```{eval-rst}
 .. autosummary::
@@ -72,7 +72,7 @@ also reachable directly (e.g. `tappa.geom.buffer_vect`).
    tappa.distance
    tappa.extent
    tappa.extract
-   tappa.flow_accumulation
+   tappa.flowAccumulation
    tappa.focal
    tappa.freq
    tappa.generics
@@ -96,7 +96,7 @@ also reachable directly (e.g. `tappa.geom.buffer_vect`).
    tappa.stats
    tappa.subset
    tappa.tessellate
-   tappa.tile_apply
+   tappa.tileApply
    tappa.time
    tappa.values
    tappa.vect

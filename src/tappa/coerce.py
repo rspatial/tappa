@@ -185,7 +185,7 @@ def asPoints(
         return messages(xc, "asPoints")
     # SpatRaster
     opt = _opt()
-    v = x.asPoints(values, na_rm, opt)
+    v = x.asPoints(values, na_rm, False, opt)
     messages(x, "asPoints")
     return messages(v, "asPoints")
 
