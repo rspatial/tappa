@@ -27,49 +27,48 @@ namespace py = pybind11;
 // ── Bridge helpers ──────────────────────────────────────────────────────────
 // These replace the Rcpp-returning functions in RcppModule.cpp.
 
-// SpatDataFrame → Python dict  {colname: list}
-static py::dict getDataFrame(SpatDataFrame* v) {
-    py::dict out;
+// SpatDataFrame → ordered Python list of columns (R ``x$values()`` is a List,
+// not a named map — duplicate field names such as after ``intersect`` are kept).
+static py::list getDataFrame(SpatDataFrame* v) {
     size_t n = v->ncol();
+    py::list out(n);
     if (n == 0) return out;
 
     auto longNA   = NA<long>::value;
     std::string stringNA = v->NAS;
     SpatTime_t timeNA = NA<SpatTime_t>::value;
 
-    std::vector<std::string> nms   = v->names;
-    std::vector<size_t>      itype = v->itype;
+    std::vector<size_t> itype = v->itype;
 
     for (size_t i = 0; i < n; i++) {
-        const std::string& nm = nms[i];
         if (itype[i] == 0) {
-            out[py::str(nm)] = v->getD(i);                     // double
+            out[i] = v->getD(i);                               // double
         } else if (itype[i] == 1) {
             std::vector<long> ints = v->getI(i);
             py::list col;
             for (auto x : ints)
                 col.append(x == longNA ? py::object(py::none()) : py::object(py::int_(x)));
-            out[py::str(nm)] = col;
+            out[i] = col;
         } else if (itype[i] == 2) {
             std::vector<std::string> s = v->getS(i);
             py::list col;
             for (auto& x : s)
                 col.append(x == stringNA ? py::object(py::none()) : py::object(py::str(x)));
-            out[py::str(nm)] = col;
+            out[i] = col;
         } else if (itype[i] == 3) {
             std::vector<int8_t> b = v->getB(i);
             py::list col;
             for (auto x : b)
                 col.append(x > 1 ? py::object(py::none()) : py::object(py::bool_(x != 0)));
-            out[py::str(nm)] = col;
+            out[i] = col;
         } else if (itype[i] == 4) {
             SpatTime_v tx = v->getT(i);
             py::list col;
             for (auto x : tx.x)
                 col.append(x == timeNA ? py::object(py::none()) : py::object(py::float_(static_cast<double>(x))));
-            out[py::str(nm)] = col;
+            out[i] = col;
         } else if (itype[i] == 5) {
-            out[py::str(nm)] = py::cast(v->getF(i));           // SpatFactor (registered below)
+            out[i] = py::cast(v->getF(i));                     // SpatFactor
         }
     }
     return out;
@@ -319,7 +318,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("remove_rows",  &SpatDataFrame::remove_rows)
         .def("cbind",        &SpatDataFrame::cbind)
         .def("rbind",        &SpatDataFrame::rbind)
-        .def("values",       &getDataFrame)      // returns Python dict
+        .def("values",       &getDataFrame)      // ordered list of columns
         .def("unique",       &SpatDataFrame::unique)
         .def("write",        &SpatDataFrame::write_dbf)
         .def_readwrite("messages", &SpatDataFrame::msg)

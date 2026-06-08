@@ -197,7 +197,7 @@ def tessellate(
                 "tessellate: polyhedron is only available for lon/lat data"
             )
         if type_ == "rectangles":
-            # Planar rectangles: degenerate to as.polygons(rast(e, res=sqrt(size)))
+            # Planar rectangles: degenerate to as.polygons(rast(e, resolution=sqrt(size)))
             from .rast import rast as _rast
             from .coerce import asPolygons as _as_polygons
             r = _rast(e, resolution=math.sqrt(size_f),

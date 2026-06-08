@@ -19,11 +19,11 @@ import matplotlib.pyplot as plt  # noqa: E402
 # ---------------------------------------------------------------------------
 
 def test_rast_stack_from_spatraster_list():
-    r1 = pt.setValues(pt.rast(nrows=4, ncols=5),
+    r1 = pt.set_values(pt.rast(nrows=4, ncols=5),
                        np.arange(1, 21, dtype=float))
-    r2 = pt.setValues(pt.rast(nrows=4, ncols=5),
+    r2 = pt.set_values(pt.rast(nrows=4, ncols=5),
                        np.arange(21, 41, dtype=float))
-    r3 = pt.setValues(pt.rast(nrows=4, ncols=5),
+    r3 = pt.set_values(pt.rast(nrows=4, ncols=5),
                        np.arange(41, 61, dtype=float))
 
     s = pt.rast([r1, r2, r3])
@@ -38,7 +38,7 @@ def test_rast_stack_from_spatraster_list():
 
 
 def test_rast_stack_single_element_returns_deep_copy():
-    r = pt.setValues(pt.rast(nrows=2, ncols=2),
+    r = pt.set_values(pt.rast(nrows=2, ncols=2),
                       np.array([1.0, 2.0, 3.0, 4.0]))
     s = pt.rast([r])
     assert pt.nlyr(s) == 1
@@ -89,9 +89,13 @@ def test_lines_handles_polygon_by_closing_ring():
     assert line2ds[0].get_linewidth() == 2
 
 
-def test_lines_rejects_points():
-    with pytest.raises(ValueError, match="expected 'lines' or 'polygons'"):
-        pt.lines(_make_points())
+def test_lines_converts_points_to_connected_segments():
+    fig, ax = plt.subplots()
+    pt.lines(_make_points(), ax=ax, col="red", lwd=2)
+    assert len(ax.lines) == 1
+    xs, ys = ax.lines[0].get_data()
+    assert len(xs) == 3
+    assert len(ys) == 3
 
 
 def test_polys_filled_default_outline_only():
@@ -113,7 +117,7 @@ def test_polys_rejects_non_polygon():
 
 def test_overlays_compose_on_a_raster_axes():
     """`pt.plot(r)` -> `pt.points(...)` should land on the same Axes."""
-    r = pt.setValues(pt.rast(nrows=4, ncols=4, xmin=0, xmax=4, ymin=0, ymax=4),
+    r = pt.set_values(pt.rast(nrows=4, ncols=4, xmin=0, xmax=4, ymin=0, ymax=4),
                       np.arange(1, 17, dtype=float))
     ax = pt.plot(r, figsize=(3, 3))
     pts = _make_points()

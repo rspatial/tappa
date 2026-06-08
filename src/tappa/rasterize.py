@@ -2,7 +2,7 @@
 rasterize.py — convert vector data to raster.
 """
 from __future__ import annotations
-from typing import Callable, List, Optional, Union
+from typing import Any, Callable, List, Optional, Union
 import numpy as np
 
 from ._terra import SpatRaster, SpatVector, SpatOptions
@@ -15,6 +15,85 @@ def _opt() -> SpatOptions:
 
 
 _RASTERIZE_FUNS = {"first", "last", "pa", "sum", "mean", "count", "min", "max", "prod"}
+
+
+def _normalize_rasterize_fun(fun: Optional[Union[str, Callable]]) -> str:
+    if fun is None:
+        return "last"
+    if isinstance(fun, str):
+        return fun.lower()
+    return getattr(fun, "__name__", "last")
+
+
+def _is_na_scalar(val: Any) -> bool:
+    if val is None:
+        return True
+    if isinstance(val, float) and np.isnan(val):
+        return True
+    if isinstance(val, str) and val == "NA":
+        return True
+    try:
+        import pandas as pd
+        if pd.isna(val):
+            return True
+    except ImportError:
+        pass
+    return False
+
+
+def _point_rasterize_values(
+    x: SpatVector,
+    field: Union[str, float, int, None],
+    fun: str,
+    n: int,
+) -> np.ndarray:
+    """
+    Build per-point values for ``rasterizePointsXY``, mirroring R
+    ``rasterize_points()`` / ``rasterize(SpatVector, ...)`` for points.
+
+    For ``fun='count'``, values are only used to honour ``na_rm`` in the C++
+    core (``std::isnan``); non-NA points are counted regardless of field
+    content, matching terra.
+    """
+    if isinstance(field, (int, float)) and not isinstance(field, bool):
+        return np.full(n, float(field))
+
+    if not (isinstance(field, str) and field != ""):
+        return np.ones(n, dtype=float)
+
+    if field not in _cpp_layer_names(x):
+        raise ValueError(f"{field!r} is not a field in x")
+
+    import pandas as pd
+    from ._helpers import _getSpatDF
+
+    df = _getSpatDF(x.df)
+    if df is None or field not in df.columns:
+        raise ValueError(f"{field!r} is not a field in x")
+
+    col = df[field]
+    # R ``$`` on a data.frame with duplicate names returns the first match.
+    if isinstance(col, pd.DataFrame):
+        col = col.iloc[:, 0]
+
+    if fun == "count":
+        vals = np.ones(len(col), dtype=float)
+        for i, v in enumerate(col):
+            if _is_na_scalar(v):
+                vals[i] = np.nan
+        return vals
+
+    if pd.api.types.is_numeric_dtype(col):
+        return col.to_numpy(dtype=float)
+
+    if pd.api.types.is_bool_dtype(col):
+        return col.to_numpy(dtype=float)
+
+    # Character / factor columns: terra coerces to 0-based integer codes.
+    codes, _ = pd.factorize(col, use_na_sentinel=True)
+    vals = codes.astype(float)
+    vals[codes < 0] = np.nan
+    return vals
 
 
 def rasterize(
@@ -118,16 +197,11 @@ def rasterize(
 
     if "points" in geom_type.lower():
         xy = np.array(x.coordinates(), dtype=float).reshape(-1, 2)
-        if isinstance(field, (int, float)) and not isinstance(field, bool):
-            values_arr = np.full(len(xy), float(field))
-        elif isinstance(field, str) and field != "" and field in _cpp_layer_names(x):
-            from ._helpers import _getSpatDF
-
-            df = _getSpatDF(x.df)
-            values_arr = np.asarray(df[field].values, dtype=float)
-        else:
-            values_arr = np.ones(len(xy), dtype=float)
-        return _rasterize_points_xy(xy, values_arr, y, fun, background, update, na_rm, filename, overwrite)
+        fun_str = _normalize_rasterize_fun(fun)
+        values_arr = _point_rasterize_values(x, field, fun_str, len(xy))
+        return _rasterize_points_xy(
+            xy, values_arr, y, fun_str, background, update, na_rm, filename, overwrite
+        )
 
     # Lines / polygons via C++ SpatRaster::rasterize(x, field, values, background,
     # touches, fun, weights, update, minmax, opt) — see R/rasterize.R

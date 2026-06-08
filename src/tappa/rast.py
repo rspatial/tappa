@@ -10,6 +10,62 @@ from ._terra import SpatExtent, SpatOptions, SpatRaster, SpatVector
 __all__ = ["rast"]
 
 
+def _is_matrix_like(x: Any) -> bool:
+    """True if *x* is a 2-D array or nested sequence (R ``rast(matrix)``)."""
+    if isinstance(x, (str, bytes, SpatRaster, SpatVector, SpatExtent)):
+        return False
+    try:
+        import numpy as np
+    except ImportError:
+        return False
+    if isinstance(x, np.ndarray):
+        return x.ndim == 2 and x.size > 0
+    if isinstance(x, (list, tuple)) and len(x) > 0:
+        try:
+            arr = np.asarray(x)
+            return arr.ndim == 2 and arr.size > 0
+        except (ValueError, TypeError):
+            return False
+    return False
+
+
+def _rast_from_matrix(
+    x: Any,
+    *,
+    crs: Optional[str] = None,
+    extent: Any = None,
+) -> SpatRaster:
+    """Build a SpatRaster from a 2-D matrix (R ``rast(matrix)``)."""
+    import numpy as np
+
+    arr = np.asarray(x, dtype=np.float64)
+    if arr.ndim != 2 or arr.size == 0:
+        raise TypeError("rast: matrix must be a non-empty 2-dimensional array")
+    nrows, ncols = int(arr.shape[0]), int(arr.shape[1])
+    if extent is not None:
+        if hasattr(extent, "vector"):
+            e = extent.vector
+        else:
+            e = list(extent)
+        xmin, xmax, ymin, ymax = (
+            float(e[0]), float(e[1]), float(e[2]), float(e[3])
+        )
+    else:
+        xmin, xmax, ymin, ymax = 0.0, float(ncols), 0.0, float(nrows)
+    return rast(
+        None,
+        nrows=nrows,
+        ncols=ncols,
+        xmin=xmin,
+        xmax=xmax,
+        ymin=ymin,
+        ymax=ymax,
+        crs=crs,
+        extent=None,
+        vals=arr.ravel(order="F"),
+    )
+
+
 def _rast_from_file(
     path: str,
     *,
@@ -104,9 +160,18 @@ def rast(
     **From** :class:`SpatVector`: use ``x.extent()`` (and ``crs(x)`` if ``crs`` is
     omitted), like R ``rast(SpatVector, ...)``.
 
-    Other keyword arguments are reserved for future parity with R ``rast(...)``.
+    **From a 2-D matrix** (``numpy.ndarray`` or nested sequence): like R
+    ``rast(matrix)`` with extent ``0, ncol, 0, nrow`` unless *extent* is set.
+
+    ``ncol`` / ``nrow`` are accepted as aliases for ``ncols`` / ``nrows``.
     """
-    del kwargs  # reserved
+    if "ncol" in kwargs:
+        ncols = kwargs.pop("ncol")
+    if "nrow" in kwargs:
+        nrows = kwargs.pop("nrow")
+    if kwargs:
+        unknown = ", ".join(sorted(kwargs))
+        raise TypeError(f"rast: unexpected keyword argument(s): {unknown}")
 
     # --- SpatRaster (copy) ---
     if isinstance(x, SpatRaster):
@@ -136,6 +201,10 @@ def rast(
         for i in range(1, len(items)):
             out.addSource(_to_raster(items[i]), True, opt)
         return messages(out, "rast")
+
+    # --- From 2-D matrix (R rast(matrix)) ---
+    if _is_matrix_like(x):
+        return _rast_from_matrix(x, crs=crs, extent=extent)
 
     # --- SpatExtent ---
     if isinstance(x, SpatExtent):
@@ -182,7 +251,7 @@ def rast(
     if x is not None:
         raise TypeError(
             "rast: unsupported type for x; use None, str, list[str], SpatRaster, "
-            "SpatExtent, or SpatVector"
+            "SpatExtent, SpatVector, or a 2-D matrix"
         )
 
     nrows = int(round(nrows))

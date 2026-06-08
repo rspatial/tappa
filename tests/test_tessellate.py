@@ -15,14 +15,14 @@ from tappa.tessellate import tessellate
 
 def _attr(v, name):
     """Return attribute column ``name`` of SpatVector *v* as a list."""
-    df = v.df
-    if hasattr(df, "values") and callable(getattr(df, "values")):
-        d = df.values()
-    else:
-        d = df
-    if name in d:
-        return list(d[name])
-    return []
+    import tappa as pt
+    df = pt.vect_as_df(v)
+    if name not in df.columns:
+        return []
+    col = df[name]
+    if hasattr(col, "iloc") and getattr(col, "ndim", 1) > 1:
+        col = col.iloc[:, 0]
+    return list(col)
 
 
 # ── planar hex grid: exact equal-area tessellation ──────────────────────────

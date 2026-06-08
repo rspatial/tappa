@@ -1488,9 +1488,10 @@ def lines(
     segments (R ``lines``).
 
     Pure overlay (no figure / aspect setup); use :func:`plot` to render a
-    SpatVector from scratch. For polygon inputs each ring is drawn as a
-    closed polyline (no fill); use :func:`polys` if you want filled
-    polygons.
+    SpatVector from scratch. Point geometries are converted to lines in
+    feature order (like R ``lines(SpatVector)`` → ``as.lines``). For polygon
+    inputs each ring is drawn as a closed polyline (no fill); use
+    :func:`polys` if you want filled polygons.
 
     R-style keyword aliases:
 
@@ -1502,6 +1503,10 @@ def lines(
     """
     _reject_layout_kwargs("lines", kwargs)
     gtype = x.type()
+    if gtype == "points":
+        from .coerce import asLines
+        x = asLines(x)
+        gtype = x.type()
     if gtype not in ("lines", "polygons"):
         raise ValueError(
             f"lines: SpatVector is of type {gtype!r}, expected 'lines' or 'polygons'"

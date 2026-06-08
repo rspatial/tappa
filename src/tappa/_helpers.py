@@ -42,6 +42,10 @@ def _getSpatDF(sdf: Any) -> "Optional[pd.DataFrame]":
     """
     Convert a ``SpatDataFrame`` C++ object to a pandas DataFrame.
 
+    Duplicate column names are preserved (as in R ``as.data.frame(SpatVector)``
+    with ``check.names=FALSE``), which matters for joins such as
+    ``intersect()`` where both layers may share a field name.
+
     Returns None if pandas is not available or the SpatDataFrame is empty.
     """
     try:
@@ -52,18 +56,31 @@ def _getSpatDF(sdf: Any) -> "Optional[pd.DataFrame]":
     if sdf is None:
         return None
 
-    # SpatDataFrame exposes .values() → Python dict {colname: list}
+    if hasattr(sdf, "values") and hasattr(sdf, "names"):
+        cols = list(sdf.values())
+        names = list(sdf.names)
+        if not cols:
+            return pd.DataFrame()
+        # Build with integer keys first so duplicate *names* are not collapsed.
+        frame = pd.DataFrame({i: cols[i] for i in range(len(cols))})
+        frame.columns = names
+        return frame
+
     if hasattr(sdf, "values"):
-        d = sdf.values()
+        raw = sdf.values()
     elif isinstance(sdf, dict):
-        d = sdf
+        raw = sdf
     else:
         return None
 
-    if not d:
+    if not raw:
         return pd.DataFrame()
 
-    return pd.DataFrame(d)
+    if isinstance(raw, dict):
+        return pd.DataFrame(raw)
+
+    # Legacy list-of-columns without names metadata.
+    return pd.DataFrame(raw)
 
 
 def _makeSpatDF(df: "pd.DataFrame") -> Any:

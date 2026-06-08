@@ -159,6 +159,8 @@ def asPoints(
     *,
     values: bool = True,
     na_rm: bool = True,
+    multi: bool = False,
+    skiplast: bool = True,
     crs: str = "",
 ) -> SpatVector:
     """
@@ -171,6 +173,10 @@ def asPoints(
         Transfer cell values as attributes (SpatRaster only).
     na_rm : bool
         Skip NA cells (SpatRaster only).
+    multi : bool
+        For lines/polygons: keep multipart structure (SpatVector only).
+    skiplast : bool
+        For polygons: omit duplicate closing vertex (SpatVector only).
     crs : str
         CRS string (SpatExtent only).
 
@@ -181,7 +187,7 @@ def asPoints(
     if isinstance(x, SpatExtent):
         return asPoints(asPolygons(x, crs=crs))
     if isinstance(x, SpatVector):
-        xc = x.asPoints()
+        xc = x.asPoints(multi, skiplast)
         return messages(xc, "asPoints")
     # SpatRaster
     opt = _opt()
