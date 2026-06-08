@@ -93,7 +93,7 @@ def registerMethods() -> None:
     )
     from .time import has_time, timeInfo, getTime, setTime
     from .write import write, update
-    from .stats import row_sums, col_sums, row_means, col_means, autocor, layer_cor
+    from .stats import row_sums, col_sums, row_means, col_means, autocor, layerCor
     from .merge import merge, mosaic
     from .coerce import asPolygons, asLines, asPoints, asArray, asMatrix, asDataFrame
     from .plot import plot, plot_rgb
@@ -186,7 +186,7 @@ def registerMethods() -> None:
         "update":         lambda self, **kw: update(self, **kw),
         # stats
         "autocor":        lambda self, **kw: autocor(self, **kw),
-        "layerCor":      lambda self, fun="cor", **kw: layer_cor(self, fun, **kw),
+        "layerCor":      lambda self, fun="cor", **kw: layerCor(self, fun, **kw),
         "rowSums":       lambda self, **kw: row_sums(self, **kw),
         "colSums":       lambda self, **kw: col_sums(self, **kw),
         # merge

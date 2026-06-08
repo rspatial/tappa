@@ -304,7 +304,7 @@ from .sample import spatSample as spat_sample, gridSample as grid_sample  # noqa
 from .stats import (                                                  # noqa: F401
     row_sums, col_sums, row_means, col_means,
     match_rast, is_in,
-    autocor, layer_cor,
+    autocor, layerCor, layer_cor,
 )
 from .merge import merge, mosaic                                      # noqa: F401
 from .relate import is_related, relate, relate_self, adjacent, nearby  # noqa: F401
@@ -396,7 +396,7 @@ __all__ = [
     # stats
     "row_sums", "col_sums", "row_means", "col_means",
     "match_rast", "is_in",
-    "autocor", "layer_cor",
+    "autocor", "layerCor", "layer_cor",
     # merge
     "merge", "mosaic",
     # relate

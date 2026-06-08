@@ -10,18 +10,13 @@ from tappa.rast import rast
 
 from path_utils import skip_if_missing_inst_ex
 
-try:
-    from tappa.stats import layerCor
-    _HAS_LAYERCOR = True
-except ImportError:
-    _HAS_LAYERCOR = False
+from tappa.stats import layerCor
 
 
 def find_logo():
     return skip_if_missing_inst_ex("logo.tif")
 
 
-@pytest.mark.skipif(not _HAS_LAYERCOR, reason="layerCor not implemented")
 def test_layercor_string_vs_callable():
     """layerCor(x, 'cor') and layerCor(x, cor) should give equivalent results."""
     f = find_logo()

@@ -4,7 +4,7 @@ stats.py — row/column statistics and value matching for SpatRaster.
 Covers functionality from rowSums.R, match.R, autocor.R, layerCor.R.
 """
 from __future__ import annotations
-from typing import List, Optional, Union
+from typing import Any, List, Optional, Sequence, Union
 import numpy as np
 
 from ._terra import SpatRaster, SpatOptions
@@ -493,48 +493,245 @@ def autocor(
 
 
 # ---------------------------------------------------------------------------
-# layerCor — layer-wise correlation matrix
+# layerCor — layer-wise correlation / covariance matrix
 # ---------------------------------------------------------------------------
 
-def layer_cor(
+_USE_OPTS = (
+    "everything",
+    "complete.obs",
+    "pairwise.complete.obs",
+    "masked.complete",
+)
+
+
+def _layer_cor_cpp_use(use: str) -> str:
+    return {
+        "everything": "all.observations",
+        "complete.obs": "complete.observations",
+        "pairwise.complete.obs": "pairwise.complete.observations",
+        "masked.complete": "complete.observations",
+    }[use]
+
+
+def _layer_cor_flat_matrix(
+    flat: Sequence[float], nl: int, lyr_names: List[str]
+) -> np.ndarray:
+    """Reshape C++ ``layerCor`` output (R ``matrix(..., byrow=TRUE)``)."""
+    mat = np.array(flat, dtype=float).reshape(nl, nl, order="C")
+    return mat
+
+
+def _layer_cor_apply_fun(
+    fun, a: np.ndarray, b: np.ndarray, **kwargs
+) -> float:
+    result = fun(a, b, **kwargs)
+    arr = np.asarray(result, dtype=float)
+    if arr.ndim == 2:
+        return float(arr[0, 1])
+    return float(arr)
+
+
+def _layer_cor_callable(
     x: SpatRaster,
-    fun: str = "pearson",
+    fun,
     *,
-    na_rm: bool = True,
+    use: str,
+    na_rm: bool,
+    maxcell: float,
+    lyr_names: List[str],
+    **kwargs,
+) -> np.ndarray:
+    from .generics import ncell
+    from .sample import spatSample
+
+    nl = x.nlyr()
+    size = ncell(x) if not np.isfinite(maxcell) else int(maxcell)
+    v = spatSample(x, size=size, method="regular", na_rm=na_rm, warn=False)
+    cols = [c for c in v.columns if c in lyr_names]
+    if len(cols) != nl:
+        cols = list(v.columns[:nl])
+
+    mat = np.full((nl, nl), np.nan, dtype=float)
+    for i in range(nl):
+        for j in range(i, nl):
+            ci, cj = cols[i], cols[j]
+            if use == "pairwise.complete.obs":
+                pair = v[[ci, cj]].dropna()
+                val = _layer_cor_apply_fun(
+                    fun, pair[ci].to_numpy(), pair[cj].to_numpy(), **kwargs
+                )
+            else:
+                val = _layer_cor_apply_fun(
+                    fun, v[ci].to_numpy(), v[cj].to_numpy(), **kwargs
+                )
+            mat[i, j] = mat[j, i] = val
+    return mat
+
+
+def _layer_cor_cov(
+    x: SpatRaster,
+    *,
+    use: str,
+    na_rm: bool,
+    asSample: bool,
+    lyr_names: List[str],
+) -> dict:
+    from .arith import any_na
+    from .generics import mask, ncell
+
+    nl = x.nlyr()
+    n = ncell(x)
+    if use == "complete.obs":
+        x = mask(x, any_na(x))
+
+    vals = _read_values_layer_matrix(x)
+    means = np.full((nl, nl), np.nan, dtype=float)
+    cov = np.full((nl, nl), np.nan, dtype=float)
+    nn = np.full((nl, nl), np.nan, dtype=float)
+
+    for i in range(nl):
+        for j in range(i, nl):
+            vi = vals[:, i]
+            vj = vals[:, j]
+            if use == "pairwise.complete.obs":
+                ok = np.isfinite(vi) & np.isfinite(vj)
+                vi = vi[ok]
+                vj = vj[ok]
+                n_ij = vi.size
+            else:
+                n_ij = n
+            avg_i = float(np.nanmean(vi)) if na_rm else float(np.mean(vi))
+            avg_j = float(np.nanmean(vj)) if na_rm else float(np.mean(vj))
+            prod = (vi - avg_i) * (vj - avg_j)
+            if na_rm:
+                prod = prod[np.isfinite(prod)]
+            denom = n_ij - int(asSample)
+            v = float(np.sum(prod)) / denom if denom else float("nan")
+            cov[i, j] = cov[j, i] = v
+            means[i, j] = avg_i
+            means[j, i] = avg_j
+            nn[i, j] = nn[j, i] = n_ij
+
+    return {
+        "covariance": cov,
+        "mean": means,
+        "n": nn,
+    }
+
+
+def layerCor(
+    x: SpatRaster,
+    fun: Union[str, Any] = "cor",
+    w: Optional[SpatRaster] = None,
+    *,
     asSample: bool = True,
-) -> "np.ndarray":
+    use: str = "everything",
+    maxcell: float = float("inf"),
+    na_rm: Optional[bool] = None,
+    **kwargs: Any,
+) -> Union[dict, np.ndarray]:
     """
-    Compute the correlation (or covariance) matrix between layers of *x*.
+    Correlation or covariance between layers of a :class:`SpatRaster`.
+
+    Mirrors R ``terra::layerCor``.
 
     Parameters
     ----------
     x : SpatRaster
-    fun : str
-        ``"pearson"`` (default), ``"spearman"``, or ``"cov"``
-        (covariance).
-    na_rm : bool
-        Ignore NA values.
+    fun : str or callable
+        ``"cor"`` (Pearson), ``"cov"``, ``"weighted.cov"``, or a function
+        taking two numeric vectors (e.g. ``numpy.corrcoef``).
+    w : SpatRaster, optional
+        Weights for ``"weighted.cov"``.
     asSample : bool
-        Use sample (n-1) divisor for covariance.
+        Use sample (``n-1``) divisor for covariance.
+    use : str
+        NA policy: ``"everything"``, ``"complete.obs"``,
+        ``"pairwise.complete.obs"``, or ``"masked.complete"``.
+    maxcell : int
+        Maximum number of cells to use (regular sample if smaller than
+        ``ncell(x)``).
+    na_rm : bool, optional
+        Deprecated; ``na_rm=True`` with ``use="everything"`` selects
+        pairwise complete observations.
 
     Returns
     -------
-    numpy.ndarray, shape (nlyr, nlyr).
+    dict or numpy.ndarray
+        For ``fun="cor"``: ``{"correlation", "mean", "n"}``.
+        For ``fun="cov"``: ``{"covariance", "mean", "n"}``.
+        For a callable: correlation matrix as a 2-D array.
     """
-    nl = x.nlyr()
-    vals = _read_values_layer_matrix(x)
-    if na_rm:
-        mask = ~np.isnan(vals).any(axis=1)
-        vals = vals[mask]
+    from .generics import ncell
+    from .names import names as layer_names
+    from .sample import spatSample
 
-    if fun == "cov":
-        ddof = 1 if asSample else 0
-        return np.cov(vals.T, ddof=ddof)
-    elif fun == "spearman":
-        from scipy.stats import spearmanr
-        corr, _ = spearmanr(vals)
-        if nl == 1:
-            return np.array([[1.0]])
-        return np.array(corr)
+    if use not in _USE_OPTS:
+        raise ValueError(
+            f"layerCor: use must be one of {_USE_OPTS}; got {use!r}"
+        )
+    if na_rm is True and use == "everything":
+        use = "pairwise.complete.obs"
+
+    na_rm_flag = use != "everything"
+    nl = x.nlyr()
+    if nl < 2:
+        raise ValueError("layerCor: x must have at least 2 layers")
+
+    lyr_names = layer_names(x)
+    callable_fun = None
+    fun_name = ""
+
+    if isinstance(fun, str):
+        fun_name = fun.lower()
+        if fun_name == "pearson":
+            fun_name = "cor"
+        if fun_name not in ("cor", "cov", "weighted.cov"):
+            raise ValueError(
+                "layerCor: character fun must be one of "
+                "'cor', 'cov', or 'weighted.cov'"
+            )
+        if fun_name == "weighted.cov":
+            if w is None:
+                raise ValueError(
+                    "layerCor: weighted.cov requires a weights layer (w)"
+                )
+            if w.nlyr() != 1:
+                raise ValueError("layerCor: weights must be a single layer")
     else:
-        return np.corrcoef(vals.T)
+        callable_fun = fun
+        fun_name = ""
+
+    if np.isfinite(maxcell) and maxcell < ncell(x):
+        x = spatSample(x, size=int(maxcell), method="regular", as_raster=True)
+
+    if fun_name == "cor":
+        opt = _opt()
+        raw = x.layerCor("cor", _layer_cor_cpp_use(use), bool(asSample), opt)
+        x = messages(x, "layerCor")
+        return {
+            "correlation": _layer_cor_flat_matrix(raw[0], nl, lyr_names),
+            "mean": _layer_cor_flat_matrix(raw[1], nl, lyr_names),
+            "n": _layer_cor_flat_matrix(raw[2], nl, lyr_names),
+        }
+
+    if fun_name == "cov":
+        return _layer_cor_cov(
+            x, use=use, na_rm=na_rm_flag, asSample=asSample, lyr_names=lyr_names
+        )
+
+    if fun_name == "weighted.cov":
+        raise NotImplementedError("layerCor: weighted.cov is not yet implemented")
+
+    return _layer_cor_callable(
+        x,
+        callable_fun,
+        use=use,
+        na_rm=na_rm_flag,
+        maxcell=maxcell,
+        lyr_names=lyr_names,
+        **kwargs,
+    )
+
+
+layer_cor = layerCor

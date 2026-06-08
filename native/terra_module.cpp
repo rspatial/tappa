@@ -76,7 +76,14 @@ static py::list getDataFrame(SpatDataFrame* v) {
 
 static py::dict getVectorAttributes(SpatVector* v) {
     SpatDataFrame df = v->df;
-    return getDataFrame(&df);
+    py::list cols = getDataFrame(&df);
+    py::dict out;
+    std::vector<std::string> names = df.get_names();
+    size_t n = std::min(names.size(), static_cast<size_t>(cols.size()));
+    for (size_t i = 0; i < n; i++) {
+        out[py::str(names[i])] = cols[i];
+    }
+    return out;
 }
 
 // geometry as a flat dict-of-lists  {id, part, x, y, hole}
