@@ -162,26 +162,39 @@ def crds(
 # ---------------------------------------------------------------------------
 
 def expanse(
-    x: SpatVector,
+    x: Union[SpatVector, SpatRaster],
     unit: str = "m",
     transform: bool = True,
-) -> np.ndarray:
+    **kwargs,
+):
     """
-    Compute the area of each feature.
+    Compute area — like R ``expanse()``.
+
+    For a :class:`SpatVector` (polygons), returns the area of each feature.
+    For a :class:`SpatRaster`, returns the area covered by the non-NA cells
+    (see :func:`tappa.zonal.expanse` for the raster-specific keyword
+    arguments ``byValue``, ``zones``, ``wide`` and ``usenames``).
 
     Parameters
     ----------
-    x : SpatVector
-        Must contain polygon geometries.
+    x : SpatVector or SpatRaster
     unit : str
-        ``"m"`` (square metres, default) or ``"km"`` (square kilometres).
+        ``"m"`` (square metres, default), ``"km"``, or (raster only) ``"ha"``.
     transform : bool
-        Transform geographic coordinates to an equal-area projection.
+        Transform geographic coordinates for accurate (geodesic) areas.
 
     Returns
     -------
-    numpy.ndarray of float (one value per feature).
+    numpy.ndarray of float (one value per feature) for a SpatVector;
+    pandas.DataFrame for a SpatRaster.
     """
+    if isinstance(x, SpatRaster):
+        from .zonal import expanse as _expanse_rast
+        return _expanse_rast(x, unit=unit, transform=transform, **kwargs)
+    if kwargs:
+        raise TypeError(
+            f"expanse: unexpected arguments for SpatVector: {sorted(kwargs)}"
+        )
     a = x.area(unit, transform, [])
     messages(x, "expanse")
     return np.abs(np.array(a, dtype=float))

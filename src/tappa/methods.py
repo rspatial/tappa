@@ -141,6 +141,7 @@ def registerMethods() -> None:
         "focal":          lambda self, w, fun="sum", **kw: focal(self, w, fun, **kw),
         "focal3D":        lambda self, w, fun="sum", **kw: focal3D(self, w, fun, **kw),
         "zonal":          lambda self, z, fun="mean", **kw: zonal(self, z, fun, **kw),
+        "expanse":        lambda self, **kw: expanse(self, **kw),
         "app":            lambda self, fun, **kw: app(self, fun, **kw),
         "lapp":           lambda self, fun, **kw: lapp(self, fun, **kw),
         "tapp":           lambda self, index, fun, **kw: tapp(self, index, fun, **kw),
