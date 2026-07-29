@@ -10,6 +10,7 @@ from ._helpers import messages, spatoptions
 def pitfinder(
     x: SpatRaster,
     *,
+    pits_on_boundary: bool = True,
     filename: str = "",
     overwrite: bool = False,
 ) -> SpatRaster:
@@ -20,6 +21,8 @@ def pitfinder(
     ----------
     x : SpatRaster
         Flow directions (e.g. from ``terrain(..., 'flowdir')``).
+    pits_on_boundary : bool
+        If ``True``, cells on the raster boundary can be pits.
 
     Returns
     -------
@@ -27,5 +30,5 @@ def pitfinder(
         Non-zero values mark pits (see R ``pitfinder``).
     """
     opt = spatoptions(filename, overwrite)
-    xc = x.pitfinder2(opt)
+    xc = x.pitfinder2(int(pits_on_boundary), opt)
     return messages(xc, "pitfinder")
