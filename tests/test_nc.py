@@ -137,9 +137,12 @@ class TestDefaultAllVars:
             assert name in vn
 
     def test_first_value(self, nc_path):
+        # Variable order follows the driver (not alphabetical); check a known
+        # scaled value by layer name (d2m), same as terra test_nc.R.
         r = rast(nc_path)
         v = values(r)
-        np.testing.assert_allclose(v[0, 0], 295.4049, atol=1e-3)
+        i_d2m = next(i for i, n in enumerate(r.names) if n.startswith("d2m"))
+        np.testing.assert_allclose(v[0, i_d2m], 295.4049, atol=1e-3)
 
     def test_extract_ncol(self, nc_path, xy_point):
         r = rast(nc_path)
