@@ -86,7 +86,7 @@ static py::dict getVectorAttributes(SpatVector* v) {
     return out;
 }
 
-// geometry as a flat dict-of-lists  {id, part, x, y, hole}
+// geometry as a flat dict-of-lists  {id, part, x, y, hole[, z]}
 static py::dict get_geometryDF(SpatVector* v) {
     SpatDataFrame df = v->getGeometryDF();
     py::dict out;
@@ -95,6 +95,9 @@ static py::dict get_geometryDF(SpatVector* v) {
     out["x"]    = df.dv[0];
     out["y"]    = df.dv[1];
     out["hole"] = df.iv[2];
+    if (v->has_z()) {
+        out["z"] = df.dv[2];
+    }
     return out;
 }
 
@@ -489,7 +492,13 @@ PYBIND11_MODULE(_terra, m) {
         .def("project_xy",   &SpatVector::project_xy)
         .def("read",         &SpatVector::read)
         .def("setGeometry",  &SpatVector::setGeometry)
-        .def("setPointsXY",  &SpatVector::setPointsGeometry)
+        .def("setPointsXY",
+            (void (SpatVector::*)(std::vector<double>&, std::vector<double>&))
+                (&SpatVector::setPointsGeometry))
+        .def("setPointsXYZ",
+            (void (SpatVector::*)(std::vector<double>&, std::vector<double>&, std::vector<double>&))
+                (&SpatVector::setPointsGeometry))
+        .def("has_z",        &SpatVector::has_z)
         .def("setPointsDF",  &SpatVector::setPointsDF)
         .def("setLinesStartEnd",&SpatVector::setLinesStartEnd)
         .def("size",         &SpatVector::size)

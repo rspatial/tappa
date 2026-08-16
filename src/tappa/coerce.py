@@ -135,7 +135,8 @@ def asLines(
                           list(range(0, nr)),
                           arr[:, 0].tolist(),
                           arr[:, 1].tolist(),
-                          [False] * nr)
+                          [False] * nr,
+                          [])
             from .crs import set_crs
             set_crs(v, crs_str)
         elif arr.shape[1] == 4:

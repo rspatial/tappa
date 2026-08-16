@@ -315,7 +315,7 @@ from .coerce import (                                                 # noqa: F4
     asArray as as_array, asMatrix as as_matrix, asDataFrame as as_data_frame,
 )
 from .spatvec import (                                                # noqa: F401
-    geomtype, is_lines, is_polygons, is_points,
+    geomtype, is_lines, is_polygons, is_points, has_z,
     geom, crds,
     expanse, perim, nseg,
     fillHoles as fill_holes, vectAsDF as vect_as_df, geomAsWkt as geom_as_wkt,
@@ -409,7 +409,7 @@ __all__ = [
     "as_polygons", "as_lines", "as_points",
     "as_array", "as_matrix", "as_data_frame",
     # spatvec
-    "geomtype", "is_lines", "is_polygons", "is_points",
+    "geomtype", "is_lines", "is_polygons", "is_points", "has_z",
     "geom", "crds",
     "expanse", "perim", "nseg",
     "fill_holes", "vect_as_df", "geom_as_wkt",

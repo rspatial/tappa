@@ -43,6 +43,11 @@ def is_points(x: SpatVector) -> bool:
 # geometry access
 # ---------------------------------------------------------------------------
 
+def has_z(x: SpatVector) -> bool:
+    """Return True if *x* stores Z coordinates on any geometry part or hole."""
+    return bool(x.has_z())
+
+
 def geom(
     x: SpatVector,
     wkt: bool = False,
@@ -71,6 +76,8 @@ def geom(
     Returns
     -------
     numpy.ndarray, list of str, or list depending on arguments.
+    When Z is present the matrix has six columns:
+    ``geom, part, x, y, hole, z``.
     """
     if hex:
         return list(x.hex())
@@ -89,7 +96,7 @@ def geom(
     arr = np.full((max_len, n_cols), float("nan"))
     for i, col in enumerate(raw):
         arr[:len(col), i] = col
-    col_names = ["geom", "part", "x", "y", "hole"][:n_cols]
+    col_names = ["geom", "part", "x", "y", "hole", "z"][:n_cols]
     if as_df:
         try:
             import pandas as pd
@@ -123,7 +130,8 @@ def crds(
 
     Returns
     -------
-    numpy.ndarray, shape (n, 2), columns [x, y], or DataFrame/list.
+    numpy.ndarray, shape (n, 2) columns ``[x, y]``, or (n, 3) with ``z``
+    when present; or DataFrame/list.
     """
     if isinstance(x, SpatRaster):
         opt = _opt()
@@ -133,6 +141,7 @@ def crds(
         if len(raw) < 2:
             return np.empty((0, 2))
         arr = np.column_stack([raw[0], raw[1]])
+        colnames = ["x", "y"]
     else:
         if as_list:
             gt = geomtype(x)[0]
@@ -146,12 +155,17 @@ def crds(
         raw_list = list(raw)
         if len(raw_list) < 2:
             return np.empty((0, 2))
-        arr = np.column_stack([raw_list[0], raw_list[1]])
+        if len(raw_list) >= 3:
+            arr = np.column_stack([raw_list[0], raw_list[1], raw_list[2]])
+            colnames = ["x", "y", "z"]
+        else:
+            arr = np.column_stack([raw_list[0], raw_list[1]])
+            colnames = ["x", "y"]
 
     if as_df:
         try:
             import pandas as pd
-            return pd.DataFrame(arr, columns=["x", "y"])
+            return pd.DataFrame(arr, columns=colnames)
         except ImportError:
             pass
     return arr

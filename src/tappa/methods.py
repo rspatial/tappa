@@ -250,7 +250,7 @@ def registerMethods() -> None:
     from .distance import distance
     from .aggregate import aggregate
     from .spatvec import (
-        geomtype, is_lines, is_polygons, is_points,
+        geomtype, is_lines, is_polygons, is_points, has_z,
         geom, crds,
         expanse, perim, nseg,
         fillHoles, vectAsDF, geomAsWkt,
@@ -288,6 +288,7 @@ def registerMethods() -> None:
         "expanse":        lambda self, **kw: expanse(self, **kw),
         "perim":          lambda self: perim(self),
         "geomtype":       lambda self: geomtype(self),
+        "has_z":          lambda self: has_z(self),
         "crds":           lambda self, **kw: crds(self, **kw),
         "geom":           lambda self, **kw: geom(self, **kw),
         "as_df":          lambda self: vectAsDF(self),

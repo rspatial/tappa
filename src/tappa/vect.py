@@ -19,53 +19,59 @@ def _looks_like_wkt(s: str) -> bool:
 
 def _vect_xy_matrix(x: Any, crs: str) -> SpatVector:
     """
-    Build points from an (n, 2) matrix — same as R ``vect(matrix)`` (``R/vect.R``):
-    ``SpatVector()`` → set CRS → ``setPointsXY(x[,1], x[,2])``.
+    Build points from an (n, 2) or (n, 3) matrix — same as R ``vect(matrix)``:
+    ``SpatVector()`` → set CRS → ``setPointsXY`` / ``setPointsXYZ``.
     Not WKT strings (that path can differ internally from R).
     """
     import numpy as np
 
     arr = np.asarray(x, dtype=float)
-    if arr.ndim != 2 or arr.shape[1] != 2:
-        raise ValueError("vect: coordinate matrix must have shape (n, 2) with columns [x, y]")
+    if arr.ndim != 2 or arr.shape[1] not in (2, 3):
+        raise ValueError(
+            "vect: coordinate matrix must have shape (n, 2) [x, y] "
+            "or (n, 3) [x, y, z]"
+        )
     v = SpatVector()
     if crs:
         v.set_crs(characterCRS(crs, "vect"))
-    v.setPointsXY(arr[:, 0].tolist(), arr[:, 1].tolist())
+    if arr.shape[1] == 2:
+        v.setPointsXY(arr[:, 0].tolist(), arr[:, 1].tolist())
+    else:
+        v.setPointsXYZ(arr[:, 0].tolist(), arr[:, 1].tolist(), arr[:, 2].tolist())
     return messages(v, "vect")
 
 
 def _vect_geom_matrix(x: Any, geom_type: str, crs: str) -> SpatVector:
-    """Build a SpatVector of lines or polygons from a ``[id, part, x, y(, hole)]``
-    matrix — analogue of R ``terra::vect(matrix, type=...)``.
+    """Build a SpatVector of lines or polygons from a
+    ``[id, part, x, y(, hole)(, z)]`` matrix — analogue of R ``terra::vect(matrix, type=...)``.
 
-    Hole flags default to 0. The first three columns are coerced to int /
-    float as appropriate.
+    Hole flags default to 0. Six columns are ``id, part, x, y, hole, z``.
     """
     import numpy as np
 
     arr = np.asarray(x, dtype=float)
-    if arr.ndim != 2 or arr.shape[1] not in (4, 5):
+    if arr.ndim != 2 or arr.shape[1] not in (4, 5, 6):
         raise ValueError(
-            "vect: lines/polygons matrix must have 4 columns (id, part, x, y) "
-            "or 5 columns (id, part, x, y, hole)"
+            "vect: lines/polygons matrix must have 4 columns (id, part, x, y), "
+            "5 columns (id, part, x, y, hole), or 6 columns (…, hole, z)"
         )
-    if geom_type not in ("lines", "polygons"):
-        raise ValueError("vect: type must be 'lines' or 'polygons'")
+    if geom_type not in ("points", "lines", "polygons"):
+        raise ValueError("vect: type must be 'points', 'lines' or 'polygons'")
 
     ids = arr[:, 0].astype(int).tolist()
     parts = arr[:, 1].astype(int).tolist()
     xs = arr[:, 2].tolist()
     ys = arr[:, 3].tolist()
-    if arr.shape[1] == 5:
+    if arr.shape[1] >= 5:
         holes = [bool(h) for h in arr[:, 4]]
     else:
         holes = [False] * arr.shape[0]
+    zs = arr[:, 5].tolist() if arr.shape[1] == 6 else []
 
     v = SpatVector()
     if crs:
         v.set_crs(characterCRS(crs, "vect"))
-    v.setGeometry(geom_type, ids, parts, xs, ys, holes)
+    v.setGeometry(geom_type, ids, parts, xs, ys, holes, zs)
     return messages(v, "vect")
 
 
@@ -101,9 +107,11 @@ def vect(
     * ``vect(SpatExtent)`` — rectangle as polygon (use **crs**).
     * ``list[str]`` — multiple WKT geometries.
     * A coordinate matrix *(n, 2)* — same as R ``vect(matrix)`` via ``setPointsXY``.
+    * A coordinate matrix *(n, 3)* ``[x, y, z]`` — points with Z via ``setPointsXYZ``.
     * A geometry matrix *(n, 4)* with columns ``[id, part, x, y]`` (or
-      *(n, 5)* with a trailing ``hole`` flag) plus ``type='lines'`` or
-      ``type='polygons'`` — same as R ``vect(matrix, type=...)``.
+      *(n, 5)* with a trailing ``hole`` flag, or *(n, 6)* with ``hole, z``)
+      plus ``type='lines'`` or ``type='polygons'`` — same as R
+      ``vect(matrix, type=...)``.
 
     Extra GDAL arguments (``layer``, ``query``, …) match the C++ ``read`` call
     where applicable; see R ``terra::vect`` for full options (not all are wired yet).
@@ -174,19 +182,19 @@ def vect(
         return v
 
     if np is not None and isinstance(x, np.ndarray):
-        if x.ndim == 2 and x.shape[1] == 2:
+        if x.ndim == 2 and x.shape[1] in (2, 3):
             if type is not None and type not in ("points", None):
                 raise ValueError(
-                    f"vect: type={type!r} requires 4 columns [id, part, x, y]"
+                    f"vect: type={type!r} requires 4+ columns [id, part, x, y, ...]"
                 )
             return _vect_xy_matrix(x, crs)
-        if x.ndim == 2 and x.shape[1] in (4, 5):
+        if x.ndim == 2 and x.shape[1] in (4, 5, 6):
             gt = (type or "points").lower()
-            if gt in ("lines", "polygons"):
+            if gt in ("points", "lines", "polygons"):
                 return _vect_geom_matrix(x, gt, crs)
         raise TypeError(
-            "vect: ndarray must be (n, 2) for points, or (n, 4)/(n, 5) "
-            "with type='lines'/'polygons'"
+            "vect: ndarray must be (n, 2)/(n, 3) for points, or (n, 4)/(n, 5)/(n, 6) "
+            "with type='points'/'lines'/'polygons'"
         )
 
     if (
