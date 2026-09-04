@@ -872,6 +872,37 @@ def mask(
     return messages(x, "mask")
 
 
+def _norm_keyval_opts(opts: Optional[Sequence[str]]) -> List[str]:
+    """Normalize KEY=VALUE option lists (None / empty → [])."""
+    if opts is None:
+        return []
+    return [str(s) for s in opts if str(s)]
+
+
+def _aoi_from_raster(y: SpatRaster) -> Optional[str]:
+    """Build AREA_OF_INTEREST=west,south,east,north from SpatRaster *y* (lon/lat)."""
+    try:
+        crs_wkt = y.get_crs("wkt")
+        if not crs_wkt:
+            return None
+        e = y.extent()
+        v = list(e.vector)  # xmin, xmax, ymin, ymax
+        if not y.isLonLat():
+            from .coerce import asPolygons
+            poly = asPolygons(e, crs=crs_wkt)
+            try:
+                poly = poly.densify(10000.0, True, True)
+            except Exception:
+                pass
+            poly = _cpp["vect.project"](poly, "OGC:CRS84", False, "", [])
+            e = poly.extent()
+            v = list(e.vector)
+        # west, south, east, north
+        return f"AREA_OF_INTEREST={v[0]},{v[2]},{v[1]},{v[3]}"
+    except Exception:
+        return None
+
+
 def _project_raster(
     x: SpatRaster,
     y: Union[SpatRaster, str],
@@ -879,9 +910,8 @@ def _project_raster(
     mask: bool = False,
     align_only: bool = False,
     pipeline: str = "",
-    AOI: Optional[List[float]] = None,
-    desired_accuracy: float = -1.0,
-    allow_ballpark: bool = True,
+    warp_opts: Optional[List[str]] = None,
+    trans_opts: Optional[List[str]] = None,
     by_util: bool = False,
     filename: str = "",
     **kw: Any,
@@ -896,27 +926,41 @@ def _project_raster(
     pipeline : str
         A PROJ pipeline string for the transformation.
         Forces *by_util=True* automatically.
-    AOI : list of float, optional
-        Area of interest ``[west, south, east, north]`` in degrees.
-    desired_accuracy : float
-        Minimum accuracy in metres (``-1`` = no constraint, requires GDAL >= 3.3).
-    allow_ballpark : bool
-        If ``False``, reject approximate transformations (requires GDAL >= 3.3).
+    warp_opts, warpOpts : list of str, optional
+        GDAL warp options as ``"KEY=VALUE"`` strings (``-wo``).
+    trans_opts, transOpts : list of str, optional
+        GDAL transformer options as ``"KEY=VALUE"`` strings (``-to``), e.g.
+        ``["ALLOW_BALLPARK=NO", "AREA_OF_INTEREST=-100,30,-90,40"]``.
+        When *y* is a SpatRaster and ``AREA_OF_INTEREST`` is not already set,
+        the lon/lat extent of *y* is appended automatically.
     by_util : bool
         Use GDALWarp utility instead of the custom chunked warper.
     """
+    if warp_opts is None:
+        warp_opts = kw.pop("warpOpts", None)
+    if trans_opts is None:
+        trans_opts = kw.pop("transOpts", None)
+
     opt = _opt(filename, **kw)
-    aoi = list(AOI) if AOI is not None else []
+    wopts = _norm_keyval_opts(warp_opts)
+    topts = _norm_keyval_opts(trans_opts)
 
     if pipeline:
         by_util = True
 
+    # AREA_OF_INTEREST from template y (lon/lat), unless already in trans_opts
+    has_aoi = any(s.upper().startswith("AREA_OF_INTEREST") for s in topts)
+    if not has_aoi and isinstance(y, SpatRaster):
+        aoi = _aoi_from_raster(y)
+        if aoi is not None:
+            topts = list(topts) + [aoi]
+
     warp = x.warp_by_util if by_util else x.warp
 
     if isinstance(y, SpatRaster):
-        x = warp(y, "", method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, 0.0, 0.0, opt)
+        x = warp(y, "", method, mask, align_only, False, pipeline, 0.0, 0.0, wopts, topts, opt)
     else:
-        x = warp(SpatRaster(), str(y), method, mask, align_only, False, pipeline, aoi, desired_accuracy, allow_ballpark, 0.0, 0.0, opt)
+        x = warp(SpatRaster(), str(y), method, mask, align_only, False, pipeline, 0.0, 0.0, wopts, topts, opt)
     return messages(x, "project")
 
 
@@ -929,7 +973,7 @@ def resample(
 ) -> SpatRaster:
     """Resample to match *y* — like R ``resample()``."""
     opt = _opt(filename, **kw)
-    x = x.warp(y, "", method, False, False, True, "", [], -1.0, True, 0.0, 0.0, opt)
+    x = x.warp(y, "", method, False, False, True, "", 0.0, 0.0, [], [], opt)
     return messages(x, "resample")
 
 
@@ -947,9 +991,8 @@ def _project_vector(
     y: Union[SpatRaster, SpatVector, str],
     partial: bool = False,
     pipeline: str = "",
-    AOI: Optional[List[float]] = None,
-    desired_accuracy: float = -1.0,
-    allow_ballpark: bool = True,
+    trans_opts: Optional[List[str]] = None,
+    **kw: Any,
 ) -> SpatVector:
     """Reproject a vector — like R ``project()`` on SpatVector.
 
@@ -957,20 +1000,22 @@ def _project_vector(
     ----------
     pipeline : str
         A PROJ pipeline string for the transformation.
-    AOI : list of float, optional
-        Area of interest ``[west, south, east, north]`` in degrees.
-    desired_accuracy : float
-        Minimum accuracy in metres (``-1`` = no constraint, requires GDAL >= 3.3).
-    allow_ballpark : bool
-        If ``False``, reject approximate transformations (requires GDAL >= 3.3).
+    trans_opts, transOpts : list of str, optional
+        Transformer options as ``"KEY=VALUE"`` strings, e.g.
+        ``["ALLOW_BALLPARK=NO", "DESIRED_ACCURACY=1",
+        "AREA_OF_INTEREST=-100,30,-90,40"]``.
     """
+    if trans_opts is None:
+        trans_opts = kw.pop("transOpts", None)
+    if kw:
+        raise TypeError(f"project: unexpected keyword argument(s): {', '.join(kw)}")
     if not isinstance(y, str):
         if hasattr(y, "get_crs"):
             y = y.get_crs("wkt")
         else:
             y = str(y)
-    aoi = list(AOI) if AOI is not None else []
-    x = _cpp["vect.project"](x, y, partial, pipeline, aoi, desired_accuracy, allow_ballpark)
+    topts = _norm_keyval_opts(trans_opts)
+    x = _cpp["vect.project"](x, y, partial, pipeline, topts)
     return messages(x, "project")
 
 

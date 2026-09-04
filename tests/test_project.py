@@ -48,7 +48,7 @@ def test_project_vector_basic(lux):
 
 
 def test_project_vector_allow_ballpark_false(lux):
-    v2 = project(lux, "EPSG:3857", allow_ballpark=False)
+    v2 = project(lux, "EPSG:3857", trans_opts=["ALLOW_BALLPARK=NO"])
     assert crs(v2, proj4=True) != crs(lux, proj4=True)
 
 
@@ -75,7 +75,7 @@ def test_project_raster_basic(elev):
 
 
 def test_project_raster_allow_ballpark_false(elev):
-    r2 = project(elev, "EPSG:3857", allow_ballpark=False)
+    r2 = project(elev, "EPSG:3857", trans_opts=["ALLOW_BALLPARK=NO"])
     v = values(r2)
     assert not np.all(np.isnan(v))
 

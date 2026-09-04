@@ -476,9 +476,7 @@ PYBIND11_MODULE(_terra, m) {
         .def("project", &SpatVector::project,
             py::arg("crs"), py::arg("partial"),
             py::arg("pipeline") = std::string(""),
-            py::arg("AOI") = std::vector<double>(),
-            py::arg("desired_accuracy") = -1.0,
-            py::arg("allow_ballpark") = true)
+            py::arg("trans_opts") = std::vector<std::string>())
         .def("get_proj_pipelines",
             [](SpatVector&, std::string source, std::string target,
                std::string authority, std::vector<double> AOI,
@@ -941,8 +939,22 @@ PYBIND11_MODULE(_terra, m) {
         .def("fillNA",       &SpatRaster::fillNA)
         .def("rectify",      &SpatRaster::rectify)
         .def("stretch",      &SpatRaster::stretch)
-        .def("warp", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, double, double, SpatOptions&))(&SpatRaster::warper))
-        .def("warp_by_util", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, std::vector<double>, double, bool, double, double, SpatOptions&))(&SpatRaster::warper_by_util))
+        .def("warp", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, double, double, std::vector<std::string>, std::vector<std::string>, SpatOptions&))(&SpatRaster::warper),
+            py::arg("x"), py::arg("crs"), py::arg("method"),
+            py::arg("mask"), py::arg("align"), py::arg("resample"),
+            py::arg("pipeline") = std::string(""),
+            py::arg("xscale") = 0.0, py::arg("yscale") = 0.0,
+            py::arg("warp_opts") = std::vector<std::string>(),
+            py::arg("trans_opts") = std::vector<std::string>(),
+            py::arg("opt"))
+        .def("warp_by_util", (SpatRaster (SpatRaster::*)(SpatRaster, std::string, std::string, bool, bool, bool, std::string, double, double, std::vector<std::string>, std::vector<std::string>, SpatOptions&))(&SpatRaster::warper_by_util),
+            py::arg("x"), py::arg("crs"), py::arg("method"),
+            py::arg("mask"), py::arg("align"), py::arg("resample"),
+            py::arg("pipeline") = std::string(""),
+            py::arg("xscale") = 0.0, py::arg("yscale") = 0.0,
+            py::arg("warp_opts") = std::vector<std::string>(),
+            py::arg("trans_opts") = std::vector<std::string>(),
+            py::arg("opt"))
         .def("resample",     &SpatRaster::resample)
         .def("zonal",        &SpatRaster::zonal)
         .def("zonal_weighted",&SpatRaster::zonal_weighted)
